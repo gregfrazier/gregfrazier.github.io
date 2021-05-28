@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+	<body>
+	<div>
+	    <canvas id="cSurface" width="640" height="480"></canvas>
+	    <canvas id="atlas" width="256" height="256" style="display: none;"></canvas>
+	</div>
+	<div>
+		Click inside the square above to add/substract land.<br/>
+		When water is <b>blue</b>, it's part of a <b>lake</b>.<br/>
+		When water is <b>brown/green</b>, it's part of the <b>ocean</b>.
+	</div>
+	Pre-made Maps:
+	<select id="exampleSelect">
+		<option>Sandbox 14x14</option>
+		<option>Example 1</option>
+		<option>Example 2</option>
+		<option>Example 3</option>
+		<option>Example 4</option>
+		<option>Example 5</option>
+	</select>
+	<button id="btnLoad">Load</button>
+	<script src="lakes.js"></script>
+	<div style="font-size: 0.75em; position: absolute; bottom: 0px;">sprites from: <a href="https://pixelhole.itch.io/pixelholes-overworld-tileset">here</a> with modifications by me</div>
+</body>
+</html>
