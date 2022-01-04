@@ -215,7 +215,7 @@
                                 if (u.floor) {
                                     var H = w(1, Z, q)
                                       , R = 4 * (j + 320 * N)
-                                      , J = 1 - X % 35 / 8;
+                                      , J = 1 - X % 35 / 5;
                                     l(r, R, H, J)
                                 }
                                 if (u.sky) {
