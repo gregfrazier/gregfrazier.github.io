@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>
+        Linting legacy monoliths ::
+        Greg&#39;s Dev Blog
+      </title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta
+  name="description"
+  content="Alright, who committed styling changes on 13000 files to main on the day before we need to merge 5 long-lived feature branches for a release cycle?
+- A Legacy Developer
+ The Problem  Introducing code standards to large legacy repositories can seem straight forward, but there are several shortcomings that must be accepted or addressed.
+Too large Some issues that can I&amp;rsquo;ve come across are that some code bases too large for regular scanning."
+/>
+<meta
+  name="keywords"
+  content=""
+/>
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://gregfrazier.github.io/posts/blog-samurai-style/" />
+
+
+
+
+
+<link rel="stylesheet" href="https://gregfrazier.github.io/assets/style.css" />
+
+<link rel="stylesheet" href="https://gregfrazier.github.io/style.css" />
+
+
+<link
+  rel="apple-touch-icon-precomposed"
+  sizes="144x144"
+  href="https://gregfrazier.github.io/img/apple-touch-icon-144-precomposed.png"
+/>
+<link rel="shortcut icon" href="https://gregfrazier.github.io/img/favicon.png" />
+
+
+<link href="https://gregfrazier.github.io/assets/fonts/Inter-Italic.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://gregfrazier.github.io/assets/fonts/Inter-Regular.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://gregfrazier.github.io/assets/fonts/Inter-Medium.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://gregfrazier.github.io/assets/fonts/Inter-MediumItalic.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://gregfrazier.github.io/assets/fonts/Inter-Bold.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://gregfrazier.github.io/assets/fonts/Inter-BoldItalic.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Linting legacy monoliths"/>
+<meta name="twitter:description" content="Introduce gradual coding standards to legacy codebase without disrupting git flows"/>
+
+
+
+<meta property="og:title" content="Linting legacy monoliths" />
+<meta property="og:description" content="Introduce gradual coding standards to legacy codebase without disrupting git flows" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://gregfrazier.github.io/posts/blog-samurai-style/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-01-12T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-01-12T00:00:00+00:00" /><meta property="og:site_name" content="Greg&#39;s Dev Blog" />
+
+
+
+
+
+
+
+  </head>
+  <body class="dark-theme">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a
+  href="/"
+  class="logo"
+  style="text-decoration: none;"
+>
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367" />
+</svg>
+</span>
+    <span class="logo__text"
+      >Greg&#39;s Dev Blog</span
+    >
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/showcase">Showcase</a></li>
+        
+      
+      
+      
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/showcase">Showcase</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg
+  class="theme-toggler"
+  width="24"
+  height="24"
+  viewBox="0 0 48 48"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path
+    d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"
+  />
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  
+  
+
+  <div class="post">
+    <h1 class="post-title">Linting legacy monoliths</h1>
+    <div class="post-meta">
+      
+        <span class="post-date">
+          2022-01-12
+        </span>
+
+        
+          
+        
+      
+
+      
+        <span class="post-author"
+          >— Written by Greg</span
+        >
+
+
+      
+    </div>
+
+    
+
+    
+      <figure class="post-cover">
+  
+    <img src="https://gregfrazier.github.io/posts/blog-samurai-style/cop.png" alt="Linting legacy monoliths"/>
+  
+
+  
+</figure>
+
+    
+
+    <div class="post-content">
+      
+      <blockquote>
+<p>Alright, who committed styling changes on 13000 files to main on the day before we need
+to merge 5 long-lived feature branches for a release cycle?</p>
+<p><strong>- A Legacy Developer</strong></p>
+</blockquote>
+<h2 id="the-problem">The Problem</h2>
+<hr>
+<p>Introducing code standards to large legacy repositories can seem straight forward, but there are several shortcomings that must be accepted or addressed.</p>
+<h5 id="too-large">Too large</h5>
+<p>Some issues that can I&rsquo;ve come across are that some code bases too large for regular scanning. They overwhelm the linting tool and take several minutes to an hour to complete. That isn&rsquo;t practical when you want enforce standards on every repository push.</p>
+<h5 id="disruption-downstream">Disruption downstream</h5>
+<p>Other downsides are successfully running the tool and then using an auto-fix feature to update the code base at once. This en masse update sounds like a great plan, but if these updates are pushed downstream to multiple long-lived feature branches, it can become a nightmare to sort out by requiring delicate merge strategies.</p>
+<h5 id="regression">Regression</h5>
+<p>This type of action may introduce unwarranted risk to the product and force a full regression test. Quite a few legacy systems aren&rsquo;t fully automated, so this could be considered unreasonable and rejected by product owners/managers.</p>
+<h5 id="buy-in">Buy-in</h5>
+<p>Code quality is a concept that&rsquo;s difficult for people who don&rsquo;t have their hands in the code everyday to recognize how important it is. It&rsquo;s especially critical in larger applications where comments, indentation and general readability are needed for developers to be comfortable and confident.</p>
+<h2 id="so-what-can-be-done">So what can be done?</h2>
+<hr>
+<p>Quickest result is to just pull the band-aid off, push the styling changes en masse and deal with the repercussions. Results could consist of angry developers due to complex merges, delayed QA tasks, regression testing, and <em>&ndash;perish the thought&ndash;</em> a root cause analysis meeting.</p>
+<p>Another option is for gradual introduction of coding conventions. Reformat the code only when it&rsquo;s being touched will lead to eventual consistency.</p>
+<p>A problem with this method is that without tooling it&rsquo;s a manual process that would require discipline and trust in your teammates. Code reviews would help out, but code style should not be the focal point of a code review. There is a need for automated tools.</p>
+<h2 id="gradual-integration-via-tooling">Gradual integration via tooling</h2>
+<hr>
+
+<div class="notices note" ><p>Since I&rsquo;m primarily a Java developer, this tool focuses around that ecosystem. There may be similar tools for other frameworks/languages that can be used interchangeably.</p>
+</div>
+<p>This section details gradual coding conventions implemented with <a href="https://github.com/gregfrazier/samurai-style-cop2">Samurai Style Cop</a>, a tool for java projects using checkstyle. Similar methods can be used for your tool of choice.</p>
+<p><a href="https://checkstyle.org/"><strong>Checkstyle</strong></a> is an excellent tool because it can be incorporated into the build process in multiple ways: cli, maven/gradle plugin, ant task, etc.</p>
+<p>Whatever tool you use, determine if it supports <a href="https://checkstyle.sourceforge.io/config_filters.html#SuppressionFilter">suppressions</a>. Checkstyle is very convenient because not only can it suppress files, but has enough granularity to suppress lines within a file. So if the incoming change is only for line 50 through 57, it will ignore warnings for other lines.</p>
+<h3 id="use-the-git-diff">Use the git diff</h3>
+<p>So to produce a suppression file, let&rsquo;s start with getting a list of changed files. We can do that by running a <code>git diff</code> against our local repository.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">git --no-pager diff --minimal -U0 -- *.java
+</code></pre></div><p>The above example uses <code>--no-pager</code> so that the output is dumped unimpeded to the screen without using an interface like <code>less</code>. Remove if you want to scroll.</p>
+<p>Additionally, <code>--minimal</code> is used so create the smallest possible diff and <code>-U0</code> turns off context lines.</p>
+<p>Here is an example output of the above using the Samurai Style Cop repository:</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="647215398" type="checkbox"  />
+    <label for="647215398">
+      <span class="collapsable-code__language">diff</span>
+      <span class="collapsable-code__title">Changes are local, non-committed and non-staged.</span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-diff" ><code>
+diff --git a/src/main/java/com/epicmonstrosity/samuraistyle/Main.java b/src/main/java/com/epicmonstrosity/samuraistyle/Main.java
+index 8dc6c1e..43c108b 100644
+--- a/src/main/java/com/epicmonstrosity/samuraistyle/Main.java
+&#43;&#43;&#43; b/src/main/java/com/epicmonstrosity/samuraistyle/Main.java
+@@ -4,0 &#43;5 @@ import com.epicmonstrosity.samuraistyle.diff.UnifiedDiffReader;
+&#43;import com.epicmonstrosity.samuraistyle.lint.CheckstyleService;
+@@ -8,0 &#43;10 @@ import com.epicmonstrosity.samuraistyle.utils.feeds.StandardInputReader;
+&#43;import com.puppycrawl.tools.checkstyle.api.CheckstyleException;
+@@ -13,0 &#43;16 @@ import java.nio.file.Files;
+&#43;import java.util.List;
+@@ -25,2 &#43;28,4 @@ public class Main {
+-            InputFeed diffFeed = getInputFeed(diffOptions);
+-            final String xml = generateSuppressionXml(diffOptions, diffFeed);
+&#43;            final InputFeed diffFeed = getInputFeed(diffOptions);
+&#43;            final CheckstyleSuppressor suppressor = getSuppressor(diffOptions);
+&#43;            final UnifiedDiffReader reader = getDiffReader(diffFeed);
+&#43;            final String xml = suppressor.buildXml(reader.getDocuments());
+</code></pre>
+  </div>
+
+
+<h3 id="brief-overview-of-git-diff-format-2-way-patch">Brief overview of git diff format (2-way, patch)</h3>
+<p><a href="https://git-scm.com/docs/git-diff"><code>Git Diff</code></a> is an extension of the <a href="https://en.wikipedia.org/wiki/Diff#Unified_format"><code>Unified Diff Format</code></a> with a few changes to the header.</p>
+<p>All patch headers start with a <code>diff --git</code> header line. <code>a/</code> and <code>b/</code> is the filename before and after the changes. Renames will have a different <code>b/</code> filename. If the file is new or removed, the filenames will be identical. The status of the file will be described later in the header, if applicable.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="638491725" type="checkbox"  />
+    <label for="638491725">
+      <span class="collapsable-code__language">diff</span>
+      <span class="collapsable-code__title">First line of git diff header</span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-diff" ><code>
+diff --git a/src/Main.java b/src/Main.java
+</code></pre>
+  </div>
+
+
+<p>Some diffs will have extended information. In the above information, there is an <code>index</code> header. This is a common extended header that displays the shortened blob object names and the full file mode (<code>&lt;hash&gt;..&lt;hash&gt; &lt;mode&gt;</code>). Blob object names are from my understanding the name of the file&rsquo;s versioned content stored in the git database. The mode portion is a record of the file type and permissions bits.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="794613258" type="checkbox"  />
+    <label for="794613258">
+      <span class="collapsable-code__language">diff</span>
+      <span class="collapsable-code__title">Regular file (100) | Read/Write owner (6) | Read group/other (44)</span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-diff" ><code>
+index 8dc6c1e..43c108b 100644
+</code></pre>
+  </div>
+
+
+<p>Other extended headers can also be present:
+
+
+
+  <div class="collapsable-code">
+    <input id="145237896" type="checkbox"  />
+    <label for="145237896">
+      <span class="collapsable-code__language">text</span>
+      <span class="collapsable-code__title">sourced from <a href="https://git-scm.com/docs/git-diff">https://git-scm.com/docs/git-diff</a></span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-text" ><code>
+old mode &lt;mode&gt;
+new mode &lt;mode&gt;
+deleted file mode &lt;mode&gt;
+new file mode &lt;mode&gt;
+copy from &lt;path&gt;
+copy to &lt;path&gt;
+rename from &lt;path&gt;
+rename to &lt;path&gt;
+similarity index &lt;number&gt;
+dissimilarity index &lt;number&gt;
+</code></pre>
+  </div>
+
+</p>
+<p>The rest of the diff is <code>Unified</code> format.</p>
+<p><code>---</code> represents the filename prior to the changes. <code>+++</code> is the filename after changes were made. This should be verbatim of what is in the header with the exception of the possibility of seeing <code>/dev/null</code> for either line when the file is created or deleted. The <code>diff --git</code> header line does not utilize <code>/dev/null</code>.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="473186295" type="checkbox"  />
+    <label for="473186295">
+      <span class="collapsable-code__language">diff</span>
+      <span class="collapsable-code__title">Create file example, note /dev/null</span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-diff" ><code>
+diff --git a/examples/pixel-aspect-ratio/Cargo.toml b/examples/pixel-aspect-ratio/Cargo.toml
+new file mode 100644
+index 0000000..aaf4732
+--- /dev/null
+&#43;&#43;&#43; b/examples/pixel-aspect-ratio/Cargo.toml
+</code></pre>
+  </div>
+
+
+<p>Following the original/modified filenames is the diff hunk header. This header starts and ends with 2 ampersands and is defined in the following format:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-diff" data-lang="diff"><span style="color:#75715e">@@ -&lt;Line Number Start&gt;,&lt;Length&gt; +&lt;Line Number Start&gt;,&lt;Length&gt; @@ 
+</span></code></pre></div><p>The minus <code>-</code> and plus <code>+</code> corresponds with the original and modified file revision respectively. Line number starting refers to the line number in the file where the differences start and the length is the total number of lines that the change consists of. So if the change starts on 14 and ends on line 16, the value would be 14,3. The range is inclusive of the starting line (14, 15, 16 would be three lines.)</p>
+<p>If no number is after the line start, such as in the example of <code>@@ -13,0 +16 @@</code>, the range is 1.</p>
+<p>A range of 0 indicates that no lines were modified, and the change is distinctly an addition or removal.</p>
+<p>The next part of the diff hunk are the content lines. Each content line starts at column 1, rather than column 0. Column 0 is reserved for <code>-</code> or <code>+</code>, which indicates if the line was removed or added.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="518792346" type="checkbox"  />
+    <label for="518792346">
+      <span class="collapsable-code__language">diff</span>
+      <span class="collapsable-code__title">Single diff hunk</span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-diff" ><code>
+@@ -25,2 &#43;28,4 @@ public class Main {
+-            InputFeed diffFeed = getInputFeed(diffOptions);
+-            final String xml = generateSuppressionXml(diffOptions, diffFeed);
+&#43;            final InputFeed diffFeed = getInputFeed(diffOptions);
+&#43;            final CheckstyleSuppressor suppressor = getSuppressor(diffOptions);
+&#43;            final UnifiedDiffReader reader = getDiffReader(diffFeed);
+&#43;            final String xml = suppressor.buildXml(reader.getDocuments());
+</code></pre>
+  </div>
+
+
+<p>In this example hunk, lines 25 and 26 were removed in the old revision of the file, and then starting on line 28 of the new revision, lines 28, 29, 30, and 31 were added. The lines may or may not match up depending on the number of changes in a prior hunk.</p>
+<p>Multiple hunks can be defined per file diff, as well as multiple file diffs may be present in a patch.</p>
+<h3 id="enter-the-samurai">Enter the Samurai</h3>
+<p>Samurai Style Cop has a simple parser for git diff files using the above definition. It tracks the line numbers and file paths for every file mentioned in the diff, then builds a Checkstyle <code>suppressions.xml</code> file. This file can be used with an external or embedded Checkstyle executable. If using embedded, it only passes the paths to Checkstyle to scan which significantly reduces the amount of files to scan for most changes.</p>
+<p>Since we only scan the diff and not the individual files, there are <strong>caveats</strong>.</p>
+<p>The length of the file (the max num of lines) is just a static guess of <code>50,000</code>. The number can be tweaked in the command line (<code>--limit</code> switch), but it&rsquo;s a constant used for every file in the diff. Checkstyle doesn&rsquo;t care if the file is shorter than the max line, but files that are larger would have lines beyond that scanned.</p>
+<p>As an example, a scanned file is <code>127</code> lines long. We want to suppress all but lines 3, 4, and 5. The suppression file would look something like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-xml" data-lang="xml"><span style="color:#f92672">&lt;suppress</span> <span style="color:#a6e22e">checks=</span><span style="color:#e6db74">&#34;.*&#34;</span> <span style="color:#a6e22e">files=</span><span style="color:#e6db74">&#34;Main.java&#34;</span> <span style="color:#a6e22e">lines=</span><span style="color:#e6db74">&#34;1-2,6-50000&#34;</span><span style="color:#f92672">/&gt;</span>
+</code></pre></div><p>Since it tracks the file path, the program could be extended to scan each file for length prior to producing the suppression markup.</p>
+<h4 id="areas-of-interest-in-the-code">Areas of Interest in the Code</h4>
+<ul>
+<li><a href="https://github.com/gregfrazier/samurai-style-cop2/tree/main/src/main/java/com/epicmonstrosity/samuraistyle/diff">Diff Scanner/Parser</a>
+<ul>
+<li>Features a state machine for more accurate transitions and stop false positive state parsing</li>
+<li>Simple parsing using Regular Expressions</li>
+<li>Not a true parsing library, only implements enough of the git diff format to process the suppression list.</li>
+</ul>
+</li>
+<li><a href="https://github.com/gregfrazier/samurai-style-cop2/tree/main/src/main/java/com/epicmonstrosity/samuraistyle/lint">Embedded Checkstyle</a>
+<ul>
+<li>Suppression list builder and setup for embedded Checkstyle.</li>
+</ul>
+</li>
+</ul>
+<h4 id="output">Output</h4>
+
+
+
+  <div class="collapsable-code">
+    <input id="156243879" type="checkbox"  />
+    <label for="156243879">
+      <span class="collapsable-code__language">xml</span>
+      <span class="collapsable-code__title">Suppression File</span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-xml" ><code>
+&lt;?xml version=&#34;1.0&#34;?&gt;&lt;!DOCTYPE suppressions PUBLIC &#34;-//Puppy Crawl//DTD Suppressions 1.0//EN&#34; &#34;http://www.puppycrawl.com/dtds/suppressions_1_0.dtd&#34;&gt;
+&lt;suppressions&gt;
+&lt;suppress checks=&#34;.*&#34; files=&#34;src[\\/]main[\\/]java[\\/]com[\\/]epicmonstrosity[\\/]samuraistyle[\\/]Main.java&#34; lines=&#34;1-4,7-9,12-15,18-27,41-43,46-58,66-68,71-50000&#34;/&gt;
+&lt;suppress checks=&#34;.*&#34; files=&#34;src[\\/]main[\\/]java[\\/]com[\\/]epicmonstrosity[\\/]samuraistyle[\\/]cli[\\/]DiffOptions.java&#34; lines=&#34;1-9,12,18-40,46,49-51,54-50000&#34;/&gt;
+&lt;suppress checks=&#34;.*&#34; files=&#34;src[\\/]main[\\/]java[\\/]com[\\/]epicmonstrosity[\\/]samuraistyle[\\/]lint[\\/]CheckstyleSuppressor.java&#34; lines=&#34;1-62,65-67,70-74,82-50000&#34;/&gt;
+&lt;/suppressions&gt;
+</code></pre>
+  </div>
+
+
+<p>When using embedded, only the files listed in the suppression list will be checked. So in this case, <code>Main.java</code>, <code>DiffOptions.java</code> and <code>CheckstyleSuppressor.java</code>.</p>
+
+
+
+  <div class="collapsable-code">
+    <input id="159732486" type="checkbox"  />
+    <label for="159732486">
+      <span class="collapsable-code__language">text</span>
+      <span class="collapsable-code__title">PLAIN output from embedded Checkstyle</span>
+      <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
+    </label>
+    <pre class="language-text" ><code>
+Starting audit...
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\Main.java:63:48: Parameter diffOptions should be final. [FinalParameters]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:10:5: Missing a Javadoc comment. [JavadocVariable]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:11:20: Variable &#39;exclusiveInput&#39; must be private and have accessor methods. [VisibilityModifier]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:13:5: Missing a Javadoc comment. [JavadocVariable]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:14:23: Variable &#39;checkStyleOptions&#39; must be private and have accessor methods. [VisibilityModifier]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:16:5: Missing a Javadoc comment. [JavadocVariable]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:17:10: Variable &#39;outputFile&#39; must be private and have accessor methods. [VisibilityModifier]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:41:5: Missing a Javadoc comment. [MissingJavadocMethod]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:47:17: Variable &#39;stdIn&#39; must be private and have accessor methods. [VisibilityModifier]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\cli\DiffOptions.java:52:9: Missing a Javadoc comment. [MissingJavadocMethod]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\lint\CheckstyleSuppressor.java:63:5: Missing a Javadoc comment. [MissingJavadocMethod]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\lint\CheckstyleSuppressor.java:68:5: Missing a Javadoc comment. [MissingJavadocMethod]
+[ERROR] .\src\main\java\com\epicmonstrosity\samuraistyle\lint\CheckstyleSuppressor.java:75:5: Missing a Javadoc comment. [MissingJavadocMethod]
+Audit done.
+</code></pre>
+  </div>
+
+
+<h3 id="integrate-into-your-build-process">Integrate into your build process</h3>
+<p>Currently, client-side pre-commit git hooks are the only method that I personally looked into. It puts the onus on the developer to setup and not deactivate, so this might not be ideal for all users.</p>
+<p>I could imagine setting up Jenkins to run the Checkstyle process and either failing the build or setting it as unstable would be relatively simple. I plan on setting up a Jenkins container and testing this out in the future. I will post an update when this occurs.</p>
+
+<div class="notices note" ><p><a href="https://github.com/gregfrazier/samurai-style-cop2">Click here to view the code/documentation for Samurai Style Cop 2 hosted at GitHub</a></p>
+</div>
+
+    </div>
+    
+      
+        <div class="pagination">
+          <div class="pagination__title">
+            <span class="pagination__title-h"
+              >Read other posts</span
+            >
+            <hr />
+          </div>
+          <div class="pagination__buttons">
+            
+              <span class="button previous">
+                <a href="https://gregfrazier.github.io/posts/blog-virtual-round-table/">
+                  <span class="button__icon">←</span>
+                  <span class="button__text">Randomized Round-table</span>
+                </a>
+              </span>
+            
+            
+          </div>
+        </div>
+      
+    
+
+    
+      
+        
+
+      
+    
+  </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <a
+  href="/"
+  class="logo"
+  style="text-decoration: none;"
+>
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367" />
+</svg>
+</span>
+    <span class="logo__text"
+      >Greg&#39;s Dev Blog</span
+    >
+    <span class="logo__cursor"></span>
+  
+</a>
+
+      <div class="copyright">
+        <span
+          >© 2022 Powered by
+          <a href="https://gohugo.io" target="_blank" rel="noopener">Hugo</a></span
+        >
+        <span
+          >Theme created by
+          <a href="https://twitter.com/panr" target="_blank" rel="noopener">panr</a></span
+        >
+      </div>
+    
+  </div>
+</footer>
+
+<script src="https://gregfrazier.github.io/assets/main.js"></script>
+<script src="https://gregfrazier.github.io/assets/prism.js"></script>
+
+
+      
+    </div>
+
+    
+  </body>
+</html>
