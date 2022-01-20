@@ -13,8 +13,8 @@
   name="description"
   content="Alright, who committed styling changes on 13000 files to main on the day before we need to merge 5 long-lived feature branches for a release cycle?
 - A Legacy Developer
- The Problem  Introducing code standards to large legacy repositories can seem straight forward, but there are several shortcomings that must be accepted or addressed.
-Too large Some issues that can I&amp;rsquo;ve come across are that some code bases too large for regular scanning."
+ The Problem  Introducing code standards to large legacy repositories can seem straightforward, but several shortcomings must be accepted or addressed.
+Too large Some issues that can I’ve come across are that some code bases are too large for regular scanning."
 />
 <meta
   name="keywords"
@@ -198,40 +198,40 @@ to merge 5 long-lived feature branches for a release cycle?</p>
 </blockquote>
 <h2 id="the-problem">The Problem</h2>
 <hr>
-<p>Introducing code standards to large legacy repositories can seem straight forward, but there are several shortcomings that must be accepted or addressed.</p>
+<p>Introducing code standards to large legacy repositories can seem straightforward, but several shortcomings must be accepted or addressed.</p>
 <h5 id="too-large">Too large</h5>
-<p>Some issues that can I&rsquo;ve come across are that some code bases too large for regular scanning. They overwhelm the linting tool and take several minutes to an hour to complete. That isn&rsquo;t practical when you want enforce standards on every repository push.</p>
+<p>Some issues that can I’ve come across are that some code bases are too large for regular scanning. They overwhelm the linting tool and take several minutes to an hour to complete. That isn’t practical when you enforce standards on every repository push.</p>
 <h5 id="disruption-downstream">Disruption downstream</h5>
-<p>Other downsides are successfully running the tool and then using an auto-fix feature to update the code base at once. This en masse update sounds like a great plan, but if these updates are pushed downstream to multiple long-lived feature branches, it can become a nightmare to sort out by requiring delicate merge strategies.</p>
+<p>Other downsides are successfully running the tool and then using an auto-fix feature to update the codebase at once. This en masse update sounds like a great plan, but when pushed downstream to multiple long-lived feature branches, it can become a nightmare to sort out by requiring delicate merge strategies.</p>
 <h5 id="regression">Regression</h5>
-<p>This type of action may introduce unwarranted risk to the product and force a full regression test. Quite a few legacy systems aren&rsquo;t fully automated, so this could be considered unreasonable and rejected by product owners/managers.</p>
+<p>This action may introduce unwarranted risk to the product and force a full regression test. With non-automated QA, product owners or business units may consider this request unreasonable and reject it.</p>
 <h5 id="buy-in">Buy-in</h5>
-<p>Code quality is a concept that&rsquo;s difficult for people who don&rsquo;t have their hands in the code everyday to recognize how important it is. It&rsquo;s especially critical in larger applications where comments, indentation and general readability are needed for developers to be comfortable and confident.</p>
+<p>Code quality is a concept that’s difficult for people who don’t have their hands in the code every day to recognize how important it is. It’s especially critical in larger applications where comments, indentation, and general readability result in more confident and comfortable developers.</p>
 <h2 id="so-what-can-be-done">So what can be done?</h2>
 <hr>
-<p>Quickest result is to just pull the band-aid off, push the styling changes en masse and deal with the repercussions. Results could consist of angry developers due to complex merges, delayed QA tasks, regression testing, and <em>&ndash;perish the thought&ndash;</em> a root cause analysis meeting.</p>
-<p>Another option is for gradual introduction of coding conventions. Reformat the code only when it&rsquo;s being touched will lead to eventual consistency.</p>
-<p>A problem with this method is that without tooling it&rsquo;s a manual process that would require discipline and trust in your teammates. Code reviews would help out, but code style should not be the focal point of a code review. There is a need for automated tools.</p>
+<p>The quickest result is pulling the band-aid off, pushing the styling changes en masse, and dealing with the repercussions. Results could consist of angry developers due to complex merges, delayed QA tasks, regression testing, and <em>–perish the thought–</em> a root cause analysis meeting.</p>
+<p>Another option is for a gradual introduction of coding conventions. Reformat the code only when it’s touched will lead to eventual consistency.</p>
+<p>A concern with this method is that it’s a manual process without tooling that would require discipline and trust in your teammates. Code reviews would help out, but code style should not be the focal point of a code review. There is a need for automated tools.</p>
 <h2 id="gradual-integration-via-tooling">Gradual integration via tooling</h2>
 <hr>
 
-<div class="notices note" ><p>Since I&rsquo;m primarily a Java developer, this tool focuses around that ecosystem. There may be similar tools for other frameworks/languages that can be used interchangeably.</p>
+<div class="notices note" ><p>Since I’m primarily a Java developer, this tool focuses on that ecosystem. There may be similar tools for other frameworks/languages that can be used interchangeably.</p>
 </div>
-<p>This section details gradual coding conventions implemented with <a href="https://github.com/gregfrazier/samurai-style-cop2">Samurai Style Cop</a>, a tool for java projects using checkstyle. Similar methods can be used for your tool of choice.</p>
-<p><a href="https://checkstyle.org/"><strong>Checkstyle</strong></a> is an excellent tool because it can be incorporated into the build process in multiple ways: cli, maven/gradle plugin, ant task, etc.</p>
-<p>Whatever tool you use, determine if it supports <a href="https://checkstyle.sourceforge.io/config_filters.html#SuppressionFilter">suppressions</a>. Checkstyle is very convenient because not only can it suppress files, but has enough granularity to suppress lines within a file. So if the incoming change is only for line 50 through 57, it will ignore warnings for other lines.</p>
+<p>This section details gradual coding conventions implemented with <a href="https://github.com/gregfrazier/samurai-style-cop2">Samurai Style Cop</a>, a tool for Java projects using Checkstyle. Similar methods can be used for your tool of choice.</p>
+<p><a href="https://checkstyle.org/"><strong>Checkstyle</strong></a> is an excellent linting tool with effortless incorporation into most build processes. Whatever tool you use, determine beforehand if it supports <a href="https://checkstyle.sourceforge.io/config_filters.html#SuppressionFilter">suppressions</a>.</p>
+<p>Checkstyle is very convenient because it can ignore files and has enough granularity to suppress lines within a file. So if the incoming change is only for lines 50 through 57, it will disregard warnings for other lines.</p>
 <h3 id="use-the-git-diff">Use the git diff</h3>
-<p>So to produce a suppression file, let&rsquo;s start with getting a list of changed files. We can do that by running a <code>git diff</code> against our local repository.</p>
+<p>To produce a suppression file, start by fetching a list of changed files. Do that by running a git diff against the local repository.</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">git --no-pager diff --minimal -U0 -- *.java
-</code></pre></div><p>The above example uses <code>--no-pager</code> so that the output is dumped unimpeded to the screen without using an interface like <code>less</code>. Remove if you want to scroll.</p>
-<p>Additionally, <code>--minimal</code> is used so create the smallest possible diff and <code>-U0</code> turns off context lines.</p>
-<p>Here is an example output of the above using the Samurai Style Cop repository:</p>
+</code></pre></div><p>The above example uses &ndash;no-pager to dump unimpeded output to the screen without using an interface like less. Remove if scrolling is desired.</p>
+<p>Additionally, &ndash;minimal is used to create the smallest possible diff, and -U0 turns off context lines.</p>
+<p>Here is an example output using the Samurai Style Cop repository:</p>
 
 
 
   <div class="collapsable-code">
-    <input id="594186327" type="checkbox"  />
-    <label for="594186327">
+    <input id="158932647" type="checkbox"  />
+    <label for="158932647">
       <span class="collapsable-code__language">diff</span>
       <span class="collapsable-code__title">Changes are local, non-committed and non-staged.</span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -259,14 +259,14 @@ index 8dc6c1e..43c108b 100644
 
 
 <h3 id="brief-overview-of-git-diff-format-2-way-patch">Brief overview of git diff format (2-way, patch)</h3>
-<p><a href="https://git-scm.com/docs/git-diff"><code>Git Diff</code></a> is an extension of the <a href="https://en.wikipedia.org/wiki/Diff#Unified_format"><code>Unified Diff Format</code></a> with a few changes to the header.</p>
+<p><a href="https://git-scm.com/docs/git-diff"><code>Git Diff</code></a> is an extension of the <a href="https://en.wikipedia.org/wiki/Diff#Unified_format"><code>Unified Diff Format</code></a> with a few alterations to the header.</p>
 <p>All patch headers start with a <code>diff --git</code> header line. <code>a/</code> and <code>b/</code> is the filename before and after the changes. Renames will have a different <code>b/</code> filename. If the file is new or removed, the filenames will be identical. The status of the file will be described later in the header, if applicable.</p>
 
 
 
   <div class="collapsable-code">
-    <input id="925431687" type="checkbox"  />
-    <label for="925431687">
+    <input id="739584126" type="checkbox"  />
+    <label for="739584126">
       <span class="collapsable-code__language">diff</span>
       <span class="collapsable-code__title">First line of git diff header</span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -277,13 +277,13 @@ diff --git a/src/Main.java b/src/Main.java
   </div>
 
 
-<p>Some diffs will have extended information. In the above information, there is an <code>index</code> header. This is a common extended header that displays the shortened blob object names and the full file mode (<code>&lt;hash&gt;..&lt;hash&gt; &lt;mode&gt;</code>). Blob object names are from my understanding the name of the file&rsquo;s versioned content stored in the git database. The mode portion is a record of the file type and permissions bits.</p>
+<p>Some diffs will have extended information. The <code>index</code> header is a common extension that displays the shortened blob object names and the file mode (<code>&lt;hash&gt;..&lt;hash&gt; &lt;mode&gt;</code>). Blob object names are, from my understanding, the name of the file&rsquo;s versioned content stored in the git database. The mode portion is a record of the file type and permissions bits.</p>
 
 
 
   <div class="collapsable-code">
-    <input id="327856491" type="checkbox"  />
-    <label for="327856491">
+    <input id="836297145" type="checkbox"  />
+    <label for="836297145">
       <span class="collapsable-code__language">diff</span>
       <span class="collapsable-code__title">Regular file (100) | Read/Write owner (6) | Read group/other (44)</span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -299,8 +299,8 @@ index 8dc6c1e..43c108b 100644
 
 
   <div class="collapsable-code">
-    <input id="429876531" type="checkbox"  />
-    <label for="429876531">
+    <input id="549168372" type="checkbox"  />
+    <label for="549168372">
       <span class="collapsable-code__language">text</span>
       <span class="collapsable-code__title">sourced from <a href="https://git-scm.com/docs/git-diff">https://git-scm.com/docs/git-diff</a></span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -321,13 +321,13 @@ dissimilarity index &lt;number&gt;
 
 </p>
 <p>The rest of the diff is <code>Unified</code> format.</p>
-<p><code>---</code> represents the filename prior to the changes. <code>+++</code> is the filename after changes were made. This should be verbatim of what is in the header with the exception of the possibility of seeing <code>/dev/null</code> for either line when the file is created or deleted. The <code>diff --git</code> header line does not utilize <code>/dev/null</code>.</p>
+<p><code>---</code> represents the filename prior to the changes. <code>+++</code> is the filename after changes were made. This should be verbatim of what is in the header, with the event of <code>/dev/null</code> present for either line when the file is created or deleted. The <code>diff --git</code> header line does not utilize <code>/dev/null</code>.</p>
 
 
 
   <div class="collapsable-code">
-    <input id="952814763" type="checkbox"  />
-    <label for="952814763">
+    <input id="392816547" type="checkbox"  />
+    <label for="392816547">
       <span class="collapsable-code__language">diff</span>
       <span class="collapsable-code__title">Create file example, note /dev/null</span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -342,18 +342,18 @@ index 0000000..aaf4732
   </div>
 
 
-<p>Following the original/modified filenames is the diff hunk header. This header starts and ends with 2 ampersands and is defined in the following format:</p>
+<p>Following the original/modified filenames is the diff hunk header. This header starts and ends with two ampersands and is defined by the following:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-diff" data-lang="diff"><span style="color:#75715e">@@ -&lt;Line Number Start&gt;,&lt;Length&gt; +&lt;Line Number Start&gt;,&lt;Length&gt; @@ 
-</span></code></pre></div><p>The minus <code>-</code> and plus <code>+</code> corresponds with the original and modified file revision respectively. Line number starting refers to the line number in the file where the differences start and the length is the total number of lines that the change consists of. So if the change starts on 14 and ends on line 16, the value would be 14,3. The range is inclusive of the starting line (14, 15, 16 would be three lines.)</p>
+</span></code></pre></div><p>The minus <code>-</code> and plus <code>+</code> correspond with the original and modified file revision. Line number starting refers to the line number in the file where the differences start. The length is the total number of changed lines. For example, if the change starts on line 14 and ends on line 16, the value would be 14,3. The range is inclusive of the starting line.</p>
 <p>If no number is after the line start, such as in the example of <code>@@ -13,0 +16 @@</code>, the range is 1.</p>
-<p>A range of 0 indicates that no lines were modified, and the change is distinctly an addition or removal.</p>
-<p>The next part of the diff hunk are the content lines. Each content line starts at column 1, rather than column 0. Column 0 is reserved for <code>-</code> or <code>+</code>, which indicates if the line was removed or added.</p>
+<p>A range of 0 indicates no modifications, and the change is distinctly an addition or removal.</p>
+<p>The next part of the diff hunk is the content lines. Line content starts at column 1. Diff markers populate column 0 and are either <code>-</code> or <code>+</code>, which indicates if the line was removed or added.</p>
 
 
 
   <div class="collapsable-code">
-    <input id="214835796" type="checkbox"  />
-    <label for="214835796">
+    <input id="849125763" type="checkbox"  />
+    <label for="849125763">
       <span class="collapsable-code__language">diff</span>
       <span class="collapsable-code__title">Single diff hunk</span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -370,22 +370,22 @@ index 0000000..aaf4732
   </div>
 
 
-<p>In this example hunk, lines 25 and 26 were removed in the old revision of the file, and then starting on line 28 of the new revision, lines 28, 29, 30, and 31 were added. The lines may or may not match up depending on the number of changes in a prior hunk.</p>
-<p>Multiple hunks can be defined per file diff, as well as multiple file diffs may be present in a patch.</p>
+<p>In this example hunk, lines 25 and 26 were removed in the old file revision, and then starting with line 28 of the new revision, lines 28, 29, 30, and 31 were added. The lines may or may not match up depending on the number of changes in a prior hunk.</p>
+<p>Multiple hunks can be defined per file diff, and more than one file diff may be present in a patch.</p>
 <h3 id="enter-the-samurai">Enter the Samurai</h3>
-<p>Samurai Style Cop has a simple parser for git diff files using the above definition. It tracks the line numbers and file paths for every file mentioned in the diff, then builds a Checkstyle <code>suppressions.xml</code> file. This file can be used with an external or embedded Checkstyle executable. If using embedded, it only passes the paths to Checkstyle to scan which significantly reduces the amount of files to scan for most changes.</p>
-<p>Since we only scan the diff and not the individual files, there are <strong>caveats</strong>.</p>
-<p>The length of the file (the max num of lines) is just a static guess of <code>50,000</code>. The number can be tweaked in the command line (<code>--limit</code> switch), but it&rsquo;s a constant used for every file in the diff. Checkstyle doesn&rsquo;t care if the file is shorter than the max line, but files that are larger would have lines beyond that scanned.</p>
-<p>As an example, a scanned file is <code>127</code> lines long. We want to suppress all but lines 3, 4, and 5. The suppression file would look something like this:</p>
+<p>Samurai Style Cop has a simple parser for git diff files using the above definition. It tracks the line numbers and file paths for every file mentioned in the diff, then builds a Checkstyle suppressions.xml file. This file can be used with an external or embedded Checkstyle executable. If embedded, it only passes the paths to Checkstyle to scan, significantly reducing the number of files to review.</p>
+<p>Since it only inspects the diff and not the individual files, there are <strong>caveats</strong>.</p>
+<p>The length of the file (the max num of lines) is just a static guess of <code>50,000</code>. Users can tweak this line limit (<code>--limit</code> switch), but it’s a global constant used for every scanned file. Checkstyle doesn’t care if the file is shorter than the max line limit, but larger files would have lines beyond that limit scanned.</p>
+<p>As an example, a scanned file is <code>127</code> lines long. The diff cues that changes are on lines 3 through 5.</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-xml" data-lang="xml"><span style="color:#f92672">&lt;suppress</span> <span style="color:#a6e22e">checks=</span><span style="color:#e6db74">&#34;.*&#34;</span> <span style="color:#a6e22e">files=</span><span style="color:#e6db74">&#34;Main.java&#34;</span> <span style="color:#a6e22e">lines=</span><span style="color:#e6db74">&#34;1-2,6-50000&#34;</span><span style="color:#f92672">/&gt;</span>
-</code></pre></div><p>Since it tracks the file path, the program could be extended to scan each file for length prior to producing the suppression markup.</p>
+</code></pre></div><p>Since it tracks the file path, the program could be extended to scan each file for length before producing the suppression markup.</p>
 <h4 id="areas-of-interest-in-the-code">Areas of Interest in the Code</h4>
 <ul>
 <li><a href="https://github.com/gregfrazier/samurai-style-cop2/tree/main/src/main/java/com/epicmonstrosity/samuraistyle/diff">Diff Scanner/Parser</a>
 <ul>
-<li>Features a state machine for more accurate transitions and stop false positive state parsing</li>
+<li>Features a state machine for more accurate transitions and stop false-positive state parsing</li>
 <li>Simple parsing using Regular Expressions</li>
-<li>Not a true parsing library, only implements enough of the git diff format to process the suppression list.</li>
+<li>Not a true parsing library; it only implements enough of the git diff format to process the suppression list.</li>
 </ul>
 </li>
 <li><a href="https://github.com/gregfrazier/samurai-style-cop2/tree/main/src/main/java/com/epicmonstrosity/samuraistyle/lint">Embedded Checkstyle</a>
@@ -399,8 +399,8 @@ index 0000000..aaf4732
 
 
   <div class="collapsable-code">
-    <input id="627395148" type="checkbox"  />
-    <label for="627395148">
+    <input id="687349215" type="checkbox"  />
+    <label for="687349215">
       <span class="collapsable-code__language">xml</span>
       <span class="collapsable-code__title">Suppression File</span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -416,13 +416,13 @@ index 0000000..aaf4732
   </div>
 
 
-<p>When using embedded, only the files listed in the suppression list will be checked. So in this case, <code>Main.java</code>, <code>DiffOptions.java</code> and <code>CheckstyleSuppressor.java</code>.</p>
+<p>Only the files listed in the suppression list will be checked when using embedded. In this case, <code>Main.java</code>, <code>DiffOptions.java</code> and <code>CheckstyleSuppressor.java</code>.</p>
 
 
 
   <div class="collapsable-code">
-    <input id="412378695" type="checkbox"  />
-    <label for="412378695">
+    <input id="479156238" type="checkbox"  />
+    <label for="479156238">
       <span class="collapsable-code__language">text</span>
       <span class="collapsable-code__title">PLAIN output from embedded Checkstyle</span>
       <span class="collapsable-code__toggle" data-label-expand="△" data-label-collapse="▽"></span>
@@ -448,10 +448,10 @@ Audit done.
 
 
 <h3 id="integrate-into-your-build-process">Integrate into your build process</h3>
-<p>Currently, client-side pre-commit git hooks are the only method that I personally looked into. It puts the onus on the developer to setup and not deactivate, so this might not be ideal for all users.</p>
-<p>I could imagine setting up Jenkins to run the Checkstyle process and either failing the build or setting it as unstable would be relatively simple. I plan on setting up a Jenkins container and testing this out in the future. I will post an update when this occurs.</p>
-<h2 id="part-2">Part 2 - Coming Soon</h2>
-<p>Part 2 will consist of using metrics obtained from git to create a list of low risk files for en masse styling changes.</p>
+<p>Currently, client-side pre-commit git hooks are the only method I inspected. It puts the onus on the developer to set up and not deactivate, so this might not be ideal for all users.</p>
+<p>I could imagine setting up Jenkins to run the Checkstyle process and failing the build or setting it as unstable would be trivial. I plan to set up a Jenkins container and test this out in the future. I will post an update when this occurs.</p>
+<h2 id="part-2">Part 2</h2>
+<p>Part 2 will use metrics obtained from git to create a list of low-risk files for en masse styling changes.</p>
 
 <div class="notices note" ><p><a href="https://github.com/gregfrazier/samurai-style-cop2">Click here to view the code/documentation for Samurai Style Cop 2 hosted at GitHub</a></p>
 </div>
