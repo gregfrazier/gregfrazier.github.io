@@ -9,10 +9,30 @@
     <description>Recent content on Greg&#39;s Dev Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 18 Jan 2022 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 29 Jan 2022 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://gregfrazier.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Early 2000s Retro PC</title>
+      <link>https://gregfrazier.github.io/posts/blog-retro-pc-part-1/</link>
+      <pubDate>Sat, 29 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://gregfrazier.github.io/posts/blog-retro-pc-part-1/</guid>
+      <description>
+        
+          
+          
+          
+        
+        
+        
+          Building a 2000-era retro pc from a mix of new and old hardware
+          
+        
+        </description>
+    </item>
     
     <item>
       <title>Randomized Round-table</title>
