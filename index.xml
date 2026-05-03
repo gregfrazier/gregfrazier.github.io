@@ -5,21 +5,21 @@
     
     
     
-    <link>https://gregfrazier.github.io/</link>
+    <link>https://gregoryfrazier.com/</link>
     <description>Recent content on Greg&#39;s Dev Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sat, 29 Jan 2022 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="https://gregfrazier.github.io/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://gregoryfrazier.com/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Early 2000s Retro PC</title>
-      <link>https://gregfrazier.github.io/posts/blog-retro-pc-part-1/</link>
+      <link>https://gregoryfrazier.com/posts/blog-retro-pc-part-1/</link>
       <pubDate>Sat, 29 Jan 2022 00:00:00 +0000</pubDate>
       
-      <guid>https://gregfrazier.github.io/posts/blog-retro-pc-part-1/</guid>
+      <guid>https://gregoryfrazier.com/posts/blog-retro-pc-part-1/</guid>
       <description>
         
           
@@ -36,10 +36,10 @@
     
     <item>
       <title>Randomized Round-table</title>
-      <link>https://gregfrazier.github.io/posts/blog-virtual-round-table/</link>
+      <link>https://gregoryfrazier.com/posts/blog-virtual-round-table/</link>
       <pubDate>Tue, 18 Jan 2022 00:00:00 +0000</pubDate>
       
-      <guid>https://gregfrazier.github.io/posts/blog-virtual-round-table/</guid>
+      <guid>https://gregoryfrazier.com/posts/blog-virtual-round-table/</guid>
       <description>
         
           
@@ -56,10 +56,10 @@
     
     <item>
       <title>About</title>
-      <link>https://gregfrazier.github.io/about/</link>
+      <link>https://gregoryfrazier.com/about/</link>
       <pubDate>Wed, 12 Jan 2022 00:00:00 +0000</pubDate>
       
-      <guid>https://gregfrazier.github.io/about/</guid>
+      <guid>https://gregoryfrazier.com/about/</guid>
       <description>
         
           
@@ -79,13 +79,13 @@ GitHub Profile
     
     <item>
       <title>Linting legacy monoliths - Part 1</title>
-      <link>https://gregfrazier.github.io/posts/blog-samurai-style/</link>
+      <link>https://gregoryfrazier.com/posts/blog-samurai-style/</link>
       <pubDate>Wed, 12 Jan 2022 00:00:00 +0000</pubDate>
       
-      <guid>https://gregfrazier.github.io/posts/blog-samurai-style/</guid>
+      <guid>https://gregoryfrazier.com/posts/blog-samurai-style/</guid>
       <description>
         
-          &lt;img src=&#34;https://gregfrazier.github.io/posts/blog-samurai-style/cop.png&#34;/&gt;
+          &lt;img src=&#34;https://gregoryfrazier.com/posts/blog-samurai-style/cop.png&#34;/&gt;
           
         
         
@@ -98,10 +98,10 @@ GitHub Profile
     
     <item>
       <title>Showcase</title>
-      <link>https://gregfrazier.github.io/showcase/</link>
+      <link>https://gregoryfrazier.com/showcase/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://gregfrazier.github.io/showcase/</guid>
+      <guid>https://gregoryfrazier.com/showcase/</guid>
       <description>
         
           
@@ -110,7 +110,21 @@ GitHub Profile
         
         
         
-          !function (t, a) {!function (t) {var a, e, A, r, b = (i = performance.now(),j = 1,f = 0,function () {j++;var t = performance.now(), a = t - i;return a  1e3 ? (i = t,j = 1) : f = Math.floor(j / (a / 1e3)),`${f}fps`}), d = function () {var t = performance.
+          !function (t, a) {
+!function (t) {
+var a, e, A, r, b = (i = performance.now(),
+j = 1,
+f = 0,
+function () {
+j++;
+var t = performance.now()
+, a = t - i;
+return a  1e3 ? (i = t,
+j = 1) : f = Math.floor(j / (a / 1e3)),
+`${f}fps`
+}
+), d = function () {
+var t = performance.
           
         
         </description>
