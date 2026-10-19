@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>From Weights to Words - Inside Brewference's Forward Pass</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="header-inner"><span class="brand">FROM WEIGHTS TO WORDS <span class="brand-light">/
+                    Inside The Forward Pass</span></span><span class="header-right">BLOG ARTICLE</span></div>
+    </header>
+    <main class="page">
+        <div class="eyebrow">JAVA · MACHINE LEARNING · VISUAL EXPLANATIONS</div>
+        <h1>Inside The Forward Pass</h1>
+        <p class="dek">Moving data through the neural network. Math degree not required.</p>
+        <div class="byline"></div>
+        <div class="column-headings"><span>OCTOBER 18, 2026 <span>·</span> By: Greg Frazier</span></div>
+        <section class="article-section" id="intro">
+            <div class="prose">
+                <h2>Introduction</h2>
+                <p>This article explores what happens during a Large Language Model's (LLM) forward pass without diving too deeply into mathematics. Instead, we'll focus on the 
+                    individual components, what they do, and how they work together to generate text. Some details are intentionally simplified to make it easier to follow.</p>
+                <p>For those interested, optional deep dives explore how these components work inside Brewference, my Java-based inference engine.</p>
+            </div>
+            <aside class="companion">
+            </aside>
+        </section>
+        <div class="article-grid">
+            <section class="article-section" id="tokens">
+                <div class="prose">
+                    <h2>Tokens and their Embedding Table</h2>
+                    <p>Every word (technically text, since punctuation and whitespace are considered) can either be a
+                        <a class="term-link" href="#def-token">token</a> or a combination of tokens. These tokens are built using a handful of techniques, such as
+                        <i>Byte Pair Encoding</i> and <i>Unigram</i>.<sup><a class="note-ref" href="#note-1" id="note-ref-1" aria-label="Note 1">1</a></sup>
+                    </p>
+                    <p>The selected word or partial word is determined over the entire text corpus for the sake of
+                        compression.<sup><a class="note-ref" href="#note-2" id="note-ref-2" aria-label="Note 2">2</a></sup> Once the <a class="term-link" href="#def-vocabulary">vocabulary</a> is set, which varies by model, it is frozen and used for
+                        training.</p>
+                    <p>During training, the tokens are used to build an <a class="term-link" href="#def-embedding"><i>embedding table</i></a>, which is essentially a
+                        dictionary of each token to a set of numbers (<a class="term-link" href="#def-vector">vector</a> or one-dimensional <a class="term-link" href="#def-tensor">tensor</a>).</p>
+                    <p>The table is used during the forward pass by taking the currently selected token (part of the
+                        prompt or previously generated token), retrieving the vectors, applying calculations and
+                        producing <a class="term-link" href="#def-logit">logits</a>.</p>
+                    <p>The logits are scores for every word<sup><a class="note-ref" href="#note-3" id="note-ref-3" aria-label="Note 3">3</a></sup> in the vocabulary. So if the vocabulary contains 4,096 tokens, you
+                        get 4,096 logits. If we use deterministic processing (known as <a class="term-link" href="#def-argmax">argMax</a>), we loop through these
+                        logits and find the biggest number. That number's index (or position in the logit list) is the
+                        token index in our dictionary.</p>
+                </div>
+                <aside class="companion">
+                    <div class="panel">
+                        <div class="panel-heading"><span class="panel-tag">FIGURE 01</span><span>EMBEDDING TABLE</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Token ID</th>
+                                    <th>Token (example)</th>
+                                    <th>Embedding Vector</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>0</td>
+                                    <td><code>&lt;pad&gt;</code></td>
+                                    <td>[0.12, -2.34, 0.87, 0.03, ... ]</td>
+                                </tr>
+                                <tr>
+                                    <td>1</td>
+                                    <td><code>&lt;bos&gt;</code></td>
+                                    <td>[-0.55, 0.71, 1.02, -0.18, ... ]</td>
+                                </tr>
+                                <tr>
+                                    <td>92</td>
+                                    <td><code>mat</code></td>
+                                    <td>[0.20, -0.88, 0.09, 1.14, ... ]</td>
+                                </tr>
+                                <tr>
+                                    <td>276</td>
+                                    <td><code>cat</code></td>
+                                    <td>[0.18, -0.94, 0.11, 1.10, ... ]</td>
+                                </tr>
+                                <tr>
+                                    <td>385</td>
+                                    <td><code>on</code></td>
+                                    <td>[-0.33, 0.45, -0.72, 0.08, ... ]</td>
+                                </tr>
+                                <tr>
+                                    <td>1342</td>
+                                    <td><code>the</code></td>
+                                    <td>[0.02, 0.15, -0.03, 0.07, ... ]</td>
+                                </tr>
+                                <tr>
+                                    <td>4095</td>
+                                    <td><code>!</code></td>
+                                    <td>[0.01, 1.05, -0.02, 0.04, ... ]</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </aside>
+                <div class="deep-dive">
+                    <div class="deep-dive-header">
+                        <span class="deep-dive-icon">&lt;/&gt;</span>
+                        <strong>Inside Brewference</strong>
+                        <span class="deep-dive-label">Optional deep dive</span>
+                    </div>
+                    <p>In Brewference, the <code>TransformerGraph</code> interface is the blueprint for all transformers
+                        within the project. Within the forward pass, we pull and embedding table entry for the current token
+                        and store its data in the runState.x array.</p>
+                    <p>Since the table is contiguous and all token embeddings are the same byte-size, we can navigate
+                        through the data by using the token's index in the dictionary.</p>
+                    <p>In <code>Listing 01</code>, we can see this copy of data and at the same time dequantizing the
+                        data back into 32-bit single-precision floating-point value for Java-native calculations.
+                        This is partly a consequence of originally targeting Java 8, other engines perform calculations directly on the quantized data.</p>
+                </div>
+                <aside class="companion">
+                    <div class="panel code-panel">
+                        <div class="filename">Qwen3Transformer.java</div>
+                        <pre class="language-java"><code class="language-java">public void forward(final int token,
+                    final int pos,
+                    final RunState runState, 
+                    final QuantizedWeights weights) {
+    final int dim = config.getTransformerDimensions();
+
+    weights.dequantizeRow(weights.tokenEmbeddingTable,
+                          token * dim,
+                          dim,
+                          runState.x);
+    ...
+}</code></pre>
+                    </div>
+                </aside>
+            </section>
+            <section class="article-section" id="layers">
+                <div class="prose">
+                    <h2>The Layer Loop</h2>
+                    <p>Most modern LLMs are built with surprisingly similar components. While the details vary between models, the general process is largely the same.</p>
+                    <p>
+                        <ol>
+                            <li>Normalization</li>
+                            <li>RoPE</li>
+                            <li>Residual Addition</li>
+                            <li>Attention</li>
+                            <li>Feed-Forward Network</li>
+                        </ol>
+                    </p>
+                    <p>Each <a class="term-link" href="#def-layer">layer</a> takes information from the previous one, performs a series of operations, and passes the result along to the next.</p>
+                    <p>This overall process may differ between model families. Some may normalize more or less often, use a variation of Rotary Position
+                        Encodings, or use alternative implementations of the Feed-Forward Network. But the underlying principles stay the same.</p>
+                </div>
+                <aside class="companion">
+                    <div class="panel">
+                        <div class="panel-heading"><span class="panel-tag">FIGURE 02</span><span>BASIC LAYER PASS</span>
+                        </div>
+                        <div class="panel-flow">
+                            <div class="bordered-yellow">
+                                <p>Normalization</p>
+                                <p>Prepare the numbers for processing</p>
+                            </div>
+                            <div>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"
+                                    data-d-component="icon" style="color: var(--color-text-tertiary); font-size: 16px;">
+                                    <path fill-rule="evenodd"
+                                        d="M12.707 18.707a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 15.586V6a1 1 0 1 1 2 0v9.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-5 5Z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="bordered-green">
+                                <p>Rotary Position Encoding</p>
+                                <p>Encode token positions by shifting its direction.</p>
+                            </div>
+                            <div>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"
+                                    data-d-component="icon" style="color: var(--color-text-tertiary); font-size: 16px;">
+                                    <path fill-rule="evenodd"
+                                        d="M12.707 18.707a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 15.586V6a1 1 0 1 1 2 0v9.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-5 5Z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="bordered-red">
+                                <p>Attention</p>
+                                <p>Look at relevant tokens from the context</p>
+                            </div>
+                            <div>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"
+                                    data-d-component="icon" style="color: var(--color-text-tertiary); font-size: 16px;">
+                                    <path fill-rule="evenodd"
+                                        d="M12.707 18.707a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 15.586V6a1 1 0 1 1 2 0v9.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-5 5Z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="bordered-purple">
+                                <p>Residual Addition (Accumulation)</p>
+                                <p>Original input + attention output</p>
+                            </div>
+                            <div>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"
+                                    data-d-component="icon" style="color: var(--color-text-tertiary); font-size: 16px;">
+                                    <path fill-rule="evenodd"
+                                        d="M12.707 18.707a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 15.586V6a1 1 0 1 1 2 0v9.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-5 5Z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="bordered-yellow">
+                                <p>Normalization</p>
+                                <p>Prepare the updated numbers</p>
+                            </div>
+                            <div>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"
+                                    data-d-component="icon" style="color: var(--color-text-tertiary); font-size: 16px;">
+                                    <path fill-rule="evenodd"
+                                        d="M12.707 18.707a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 15.586V6a1 1 0 1 1 2 0v9.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-5 5Z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="bordered-blue">
+                                <p>Feed-Forward Network (FFN)</p>
+                                <p>Transform the information using learned patterns</p>
+                            </div>
+                            <div>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"
+                                    data-d-component="icon" style="color: var(--color-text-tertiary); font-size: 16px;">
+                                    <path fill-rule="evenodd"
+                                        d="M12.707 18.707a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 15.586V6a1 1 0 1 1 2 0v9.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-5 5Z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="bordered-purple">
+                                <p>Residual Addition (Accumulation)</p>
+                                <p>Previous State + FFN Output</p>
+                            </div>
+                            <div>
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"
+                                    data-d-component="icon" style="color: var(--color-text-tertiary); font-size: 16px;">
+                                    <path fill-rule="evenodd"
+                                        d="M12.707 18.707a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L11 15.586V6a1 1 0 1 1 2 0v9.586l3.293-3.293a1 1 0 0 1 1.414 1.414l-5 5Z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="bordered-black">
+                                <p>Next Layer</p>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+                <div class="deep-dive">
+                    <div class="deep-dive-header">
+                        <span class="deep-dive-icon">&lt;/&gt;</span>
+                        <strong>Inside Brewference</strong>
+                        <span class="deep-dive-label">Optional deep dive</span>
+                    </div>
+                    <p>The total number of layers is baked into each model and differ not only between families but
+                        also sizes. For instance, Qwen3 0.6B has 28 layers, while Qwen3 4B has 36.</p>
+                    <p>The same is true with embedding lengths, which is the size of the vector for each token. Qwen3
+                        0.6B's embedding length is 1024, while 4B is 2560. These size differences aren't a coincidence,
+                        there is a strong relationship between the vector size and the overall size of the model.</p>
+                </div>
+                <aside class="companion">
+                    <div class="panel">
+                        <div class="panel-heading"><span class="panel-tag">FIGURE 03</span><span>MODEL PROPERTIES</span>
+                        </div>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <th>
+                                        Model
+                                    </th>
+                                    <th>
+                                        Parameters
+                                    </th>
+                                    <th>
+                                        Embedding Dimensions
+                                    </th>
+                                    <th>
+                                        Layers
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Llama 2 7B
+                                    </td>
+                                    <td>
+                                        7B
+                                    </td>
+                                    <td>
+                                        4,096
+                                    </td>
+                                    <td>
+                                        32
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Llama 2 13B
+                                    </td>
+                                    <td>
+                                        13B
+                                    </td>
+                                    <td>
+                                        5,120
+                                    </td>
+                                    <td>
+                                        40
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Llama 2 70B
+                                    </td>
+                                    <td>
+                                        70B
+                                    </td>
+                                    <td>
+                                        8,192
+                                    </td>
+                                    <td>
+                                        80
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Qwen3 0.6B
+                                    </td>
+                                    <td>
+                                        600M
+                                    </td>
+                                    <td>
+                                        1,024
+                                    </td>
+                                    <td>
+                                        28
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Qwen3 1.7B
+                                    </td>
+                                    <td>
+                                        1.7B
+                                    </td>
+                                    <td>
+                                        2,048
+                                    </td>
+                                    <td>
+                                        28
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Qwen3 4B
+                                    </td>
+                                    <td>
+                                        4B
+                                    </td>
+                                    <td>
+                                        2,560
+                                    </td>
+                                    <td>
+                                        36
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </aside>
+            </section>
+            <section class="article-section" id="head">
+                <div class="prose">
+                    <h2>Attention Heads - Multiple Perspectives on Language</h2>
+                    <p>Think of attention heads like having multiple specialists working together, each examining the
+                        same sentence but focusing on different aspects.
+                        Just as any team may include different experts, analysts, and other specialists, an LLM uses its
+                        heads to look at language from multiple angles.</p>
+                    <p>One head might specialize in identifying grammatical relationships, while another focuses on
+                        tracking pronouns ("Kelly" is also "she").
+                        Through training, different heads can develop different patterns of attention, allowing the
+                        model to examine relationships between words in multiple ways.</p>
+                    <p>These <a class="term-link" href="#def-attention-head">heads</a> don't simply examine a sentence once and remember what they found. As each new token
+                        is processed, they calculate new attention patterns using
+                        information retained from previous tokens. This allows the model to continually reconsider which
+                        parts of the context are more relevant.</p>
+                    <p>Models have varying numbers of heads. For example, Qwen3 models range from 16 heads in smaller
+                        models to 64 in the large 32-billion-parameter model.
+                        These heads operate in parallel, giving the model multiple ways to examine relationships within
+                        the context.</p>
+                </div>
+                <aside class="companion">
+                    <section class="ah-demo" id="attention-demo" aria-label="Interactive attention head illustration">
+                        <h3>Attention in action</h3>
+                        <p class="ah-muted">Select a word to see four different ways attention might be distributed across the sentence.
+                        </p>
+                        <div class="ah-sentence" id="ah-sentence" aria-label="Choose a token"></div>
+                        <div class="ah-heads" id="ah-heads"></div>
+                        <div class="ah-note" id="ah-note" aria-live="polite"></div>
+                        <div class="ah-footer"><strong>Note:</strong> Illustrative purposes only.</div>
+                    </section>
+                    <script>
+                        (() => {
+                            const root = document.getElementById('attention-demo'); //document.querySelector('.ah-demo');
+                            if (!root) return;
+                            const tokens = ['The', 'cat', 'sits', 'on', 'the', 'mat', 'and', 'purrs'];
+                            const heads = [
+                                { name: 'Head 1', desc: 'Example: focuses on a nearby token', color: '#398d80', kind: 'near' },
+                                { name: 'Head 2', desc: 'Example: focuses on the sentence subject', color: '#bd8546', kind: 'subject' },
+                                { name: 'Head 3', desc: 'Example: focuses on an action or description', color: '#8076ad', kind: 'action' },
+                                { name: 'Head 4', desc: 'Example: distributes attention more broadly', color: '#477da2', kind: 'broad' }
+                            ];
+                            const sentence = root.querySelector('#ah-sentence'), panels = root.querySelector('#ah-heads'), note = root.querySelector('#ah-note');
+                            let selected = 1;
+                            function weights(kind, index) {
+                                const w = tokens.map((_, j) => 0.025);
+                                const bump = (j, v) => { 
+                                    if (j >= 0 && j < w.length)
+                                        w[j] += v;
+                                };
+                                if (kind === 'near') { 
+                                    bump(index, .3);
+                                    bump(index - 1, .45);
+                                    bump(index + 1, .15);
+                                } else if (kind === 'subject') {
+                                    bump(1, .75);
+                                    bump(index, .12);
+                                } else if (kind === 'action') {
+                                    bump(index === 6 ? 7 : 2, .6);
+                                    bump(index === 6 ? 2 : 7, .22);
+                                    bump(index, .1);
+                                } else if (kind === 'broad') {
+                                    tokens.forEach((_, j) => bump(j, .2 + ((j * 7 + index * 3) % 5) * .045));
+                                    bump(index, .18);
+                                }
+                                const sum = w.reduce((a, b) => a + b, 0);
+                                return w.map(x => x / sum);
+                            }
+                            function render() {
+                                sentence.replaceChildren();
+                                tokens.forEach((t, i) => { 
+                                    const b = document.createElement('button'); 
+                                    b.type = 'button'; 
+                                    b.className = 'ah-token'; 
+                                    b.textContent = t; 
+                                    b.setAttribute('aria-pressed', String(i === selected)); 
+                                    b.setAttribute('aria-label', `Inspect attention for ${t}, token ${i + 1}`); 
+                                    b.addEventListener('click', () => { 
+                                        selected = i; 
+                                        render() 
+                                    });
+                                    sentence.append(b) 
+                                });
+                                panels.replaceChildren();
+                                heads.forEach(h => {
+                                    const panel = document.createElement('div');
+                                    panel.className = 'ah-head';
+                                    const heading = document.createElement('h4');
+                                    heading.textContent = h.name;
+                                    const desc = document.createElement('p');
+                                    desc.textContent = h.desc;                                    
+                                    const bars = document.createElement('div');
+                                    bars.className = 'ah-bars';
+                                    bars.setAttribute('role', 'img');
+                                    const ws = weights(h.kind, selected);
+                                    bars.setAttribute('aria-label', `${h.name} attention weights: ` + ws.map((w, i) => `${tokens[i]} ${Math.round(w * 100)}%`).join(', '));
+                                    ws.forEach((w, i) => { 
+                                        const slot = document.createElement('div');
+                                        slot.className = 'ah-bar-slot';
+                                        const bar = document.createElement('div');
+                                        bar.className = 'ah-bar';
+                                        bar.style.height = `${Math.max(2, w * 100)}%`;
+                                        bar.style.background = h.color;
+                                        bar.title = `${tokens[i]}: ${(w * 100).toFixed(1)}%`;
+                                        slot.append(bar);
+                                        bars.append(slot);
+                                    });
+                                    const labels = document.createElement('div');
+                                    labels.className = 'ah-words';
+                                    tokens.forEach((t, i) => { 
+                                        const s = document.createElement('span');
+                                        s.className = 'ah-word';
+                                        s.textContent = t;
+                                        s.title = t;
+                                        labels.append(s) 
+                                    });
+                                    panel.append(heading, desc, bars, labels);
+                                    panels.append(panel);
+                                });
+                                note.textContent = `Selected token: "${tokens[selected]}" - all four heads are shown attending from this same token position. Each head uses a different distribution of weights to gather information from the sentence. Taller bars mean more attention weight, not necessarily greater causal importance.`;
+                            }
+                            render();
+                        })();
+                    </script>
+                </aside>
+                <div class="prose">
+                    <h2>Remembering What Came Before</h2>
+                    <p>Consider the sentence "Kelly picked up her book at the library." When processing "her," the model needs information from earlier
+                        to establish the relationship with "Kelly."
+                    </p>
+                    <p>Each head can look back at previously processed tokens, deciding which ones are most relevant. Different heads may focus on different
+                        parts of that history, even though they are all working with the same context.
+                    </p>
+                    <p>This is accomplished using three components: Query, Key, and Value. The Query represents what the current token is looking for, 
+                        the Keys help determine which tokens are relevant, and the Values contain the information gathered from those tokens.
+                    </p>
+                    <p>Repeatedly calculating everything about the previous tokens would be computationally intensive. So instead, the model maintains a collection of previous calculations
+                        so that they can be reused. This cache is known as the <a class="term-link" href="#def-kv-cache"><b>Key-Value (KV) cache</b></a>.
+                    </p>
+                    <p>The cache grows as the context expands with every generated token.</p>
+                </div>
+                <aside class="companion">
+                    <section class="ah-demo-kv" id="attention-kv-demo"
+                        aria-label="Interactive attention and KV cache demonstration">
+                        <h2>Attention in action</h2>
+                        <p class="muted">Step through token generation. Each new token adds a Key and Value to the cache; every head calculates a fresh attention pattern over the available tokens.</p>
+                        <div class="steps" id="ah-progress" aria-live="polite"></div>
+                        <div class="tokens" id="ah-tokens" aria-label="Generated tokens"></div>
+                        <div class="controls">
+                            <button class="primary" id="ah-next">Generate Token →</button>
+                            <button id="ah-reset">Reset</button>
+                        </div>
+                        <h3 style="margin:12px 0 8px;font-size:1.08rem">Attention weights computed</h3>
+                        <div class="heads" id="ah-heads"></div>
+                        <div class="cache"><strong>KV cache - grows as tokens arrive</strong>
+                            <div class="cache-grid" id="ah-cache"></div>
+                            <div class="muted" id="ah-cache-note"></div>
+                        </div>
+                        <div class="callout" id="ah-explanation" aria-live="polite"></div>
+                        <p class="muted" style="margin-top:14px;margin-bottom:0"><strong>Note:</strong> Illustrative purposes only.</p>
+                    </section>
+                    <script>
+                        (() => {
+                            'use strict';
+                            const root = document.getElementById('attention-kv-demo');
+                            if (!root) return;
+                            const words = ['The', 'cat', 'sits', 'on', 'the', 'mat', 'and', 'purrs'];
+                            const heads = [{
+                                name: 'Head A',
+                                desc: 'Often favors nearby tokens',
+                                color: '#3d8072',
+                                weight: (i, t) => Math.exp(-.9 * (t - i))
+                            }, {
+                                name: 'Head B',
+                                desc: 'Often revisits earlier tokens',
+                                color: '#bb8550',
+                                weight: (i, t) => 1.1 / (i + 1) + .08
+                            }, {
+                                name: 'Head C',
+                                desc: 'Focus shifts across the context',
+                                color: '#7e79b5',
+                                weight: (i, t) => .12 + Math.pow(Math.sin((i + 1) * 1.8 + t * .9), 2)
+                            }, {
+                                name: 'Head D',
+                                desc: 'A different learned perspective',
+                                color: '#658ba7',
+                                weight: (i, t) => .15 + Math.pow(Math.cos((i + 2) * .8 - t * .55), 2)
+                            }];
+                            let step = 0,
+                                timer = null;
+                            const $ = id => root.querySelector('#' + id);
+
+                            function render() {
+                                const n = step + 1;
+                                $('ah-progress').textContent = `Token ${n} of ${words.length}: “${words[step]}”`;
+                                $('ah-tokens').innerHTML = words.map((w, i) => `<span class="token ${i === step ? 'current' : i > step ? 'future' : ''}">${w}</span>`).join('');
+                                $('ah-heads').innerHTML = heads.map(h => {
+                                    let weights = words.slice(0, n).map((_, i) => h.weight(i, step));
+                                    let sum = weights.reduce((a, b) => a + b, 0);
+                                    weights = weights.map(v => v / sum);
+                                    return `<div class="head"><h3>${h.name}</h3><div class="muted">${h.desc}</div><div class="bars">${weights.map((w, i) => `<div class="bar-slot" title="${words[i]}: ${(w * 100).toFixed(1)}%"><div class="bar" style="--bar:${h.color};height:${Math.max(2, w * 95)}%"></div></div>`).join('')}</div><div style="display:flex;gap:5px">${words.slice(0, n).map(w => `<div class="bar-slot"><span class="bar-label">${w}</span></div>`).join('')}</div></div>`
+                                }).join('');
+                                $('ah-cache').innerHTML = words.map((w, i) => `<div class="cache-cell ${i < step ? 'stored' : i === step ? 'new' : ''}">${i <= step ? w : '-'}<div>${i < step ? 'K + V' : i === step ? 'New K/V' : 'empty'}</div></div>`).join('');
+                                $('ah-cache-note').innerHTML = `${n} of ${words.length} token positions cached.<br/><span style="font-size: 0.8em">Earlier Keys and Values remain available; attention weights are computed again for this token.</span>`;
+                                $('ah-explanation').innerHTML = step === 0 ? '<strong>Starting out:</strong> The first token can only attend to itself. Its Key and Value are stored.' : `<strong>What changed?</strong> “${words[step]}” has a new Query, Key and Value. The new Query compares with all ${n} available Keys. Each head calculates fresh weights and combines the corresponding Values. The earlier cached K/V entries are reused, not recalculated.`;
+                                $('ah-next').disabled = step === words.length - 1
+                            }
+
+                            function next() {
+                                if (step < words.length - 1) {
+                                    step++;
+                                    render()
+                                }
+                            }
+
+                            $('ah-next').addEventListener('click', () => {
+                                next()
+                            });
+                            $('ah-reset').addEventListener('click', () => {
+                                step = 0;
+                                render()
+                            });
+                            render()
+                        })();
+                    </script>
+                </aside>
+                <div class="deep-dive">
+                    <div class="deep-dive-header">
+                        <span class="deep-dive-icon">&lt;/&gt;</span>
+                        <strong>Inside Brewference</strong>
+                        <span class="deep-dive-label">Optional deep dive</span>
+                    </div>
+                    <p>In Brewference (and other inference engines), the model consumes a large amount of memory, but additional headroom is needed for the KV cache, which directly affects the length of a conversation (context).</p>
+                    <p>The amount of available memory, along with the limitations of the model itself, determines how much cache can be allocated and, therefore, how long a conversation can last.</p>
+                    <p>Once the cache is full, the model can no longer store additional calculations, preventing further token generation (generally speaking). However, techniques can be used to keep the conversation going.
+                        Some techniques are built into the model itself, while others are implemented as part of the toolchain.
+                    </p>
+                    <p>Real-world example: A 24 billion parameter 8-bit model will weigh in at around 24 GB. That might fit on an RTX 4090 which has 24GB of VRAM, 
+                        but that would leave very little room for the KV cache, making it practical only for shorter conversations.
+                        You could spill into the system RAM, but that causes slower token generation.
+                    </p>
+                    <p>Note: While the KV cache and context window aren't technically the same mechanism, they are directly related. The context window determines how much information 
+                        the model can consider, while the KV cache stores representations of previously processed tokens. As the context grows, so does the cache, requiring additional 
+                        memory to accommodate the longer context.
+                    </p>
+                    <p>Brewference supports KV cache quantization to 16-bit values and sliding window (a function of the Phi-3 model.) Many other engines feature more aggressive quantization with much better performance.
+                    </p>
+                </div>
+                <aside class="companion">
+                    <div class="panel">
+                        <div class="panel-heading"><span class="panel-tag">FIGURE 04</span><span>CONTEXT MANAGEMENT EXAMPLES</span>
+                        </div>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <th>Technique</th>
+                                    <th>Detail</th>
+                                    <th>Trade-off</th>
+                                </tr>
+                                <tr>
+                                    <td>Sliding window</td>
+                                    <td>Discard old messages as new ones arrive</td>
+                                    <td>The model forgets earlier information</td>
+                                </tr>
+                                <tr>
+                                    <td>Summarization</td>
+                                    <td>Condense the conversation into a short summary</td>
+                                    <td>Details are lost</td>
+                                </tr>
+                                <tr>
+                                    <td>Retrieval-Augmented Generation (RAG)</td>
+                                    <td>Store info externally (database) and retrieve when needed</td>
+                                    <td>Retrieval may not catch all info</td>
+                                </tr>
+                                <tr>
+                                    <td>Hierarchical memory</td>
+                                    <td>Multiple levels of summaries, from session to long-term knowledge</td>
+                                    <td>Complicated</td>
+                                </tr>
+                                <tr>
+                                    <td>Model quantization</td>
+                                    <td>Statically reworking the model's weights to be smaller</td>
+                                    <td>Reduces precision</td>
+                                </tr>
+                                <tr>
+                                    <td>KV cache quantization</td>
+                                    <td>Storing the calculations in smaller variables within memory</td>
+                                    <td>Reduces precision</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </aside>
+            </section>
+            <section class="article-section" id="normalization">
+                <div class="prose">
+                    <h2>A Note About Normalization</h2>
+                    <p>Normalization is fairly straightforward. It adjusts the scale of numerical values to keep them within a manageable range. This helps stabilize data as it passes through the model.</p>
+                    <p>Think of it as making very small numbers larger, or very large numbers smaller, while generally preserving their relationships to one another.</p>
+                    <p>Typical <a class="term-link" href="#def-normalization">normalization</a> for this topic is <b>Root Mean Square Normalization</b> (RMSNorm), which adjusts values based on their overall magnitude.</p>
+                </div>
+                <aside class="companion">
+                    <div class="panel">
+                        <div class="panel-heading"><span class="panel-tag">FIGURE 05</span><span>NORMALIZATION EXAMPLES</span>
+                        </div>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <th>Original Value</th>
+                                    <th>After Normalization</th>
+                                </tr>
+                                <tr>
+                                    <td>-2.0</td>
+                                    <td>-0.0019999903</td>
+                                </tr>
+                                <tr>
+                                    <td>4.0</td>
+                                    <td>0.007999961</td>
+                                </tr>
+                                <tr>
+                                    <td>-3.0</td>
+                                    <td>-0.008999957</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>                    
+                </aside>
+            </section>
+            <section class="article-section" id="accum">
+                <div class="prose">
+                    <h2>A Briefing on Residual Addition</h2>
+                    <p>This is an important step in the overall forward pass, but fortunately like normalization, it's pretty straight-forward.</p>
+                    <p>Think of it as an arithmetic accumulator. It preserves the information the model already has while adding the changes produced by the attention or feed-forward processes.</p>
+                </div>
+                <aside class="companion">
+                </aside>
+            </section>
+            <section class="article-section" id="rope">
+                <div class="prose">
+                    <h2>Rotary Position Encoding (RoPE)</h2>
+                    <p>As we all know, the order of words can change the meaning of a sentence. "He sat on the chair" means something different from "The chair sat on he."
+                        At this point in the pass, the model has numerical representations of the tokens but no idea where they lie within the sentence.
+                    </p>
+                    <p><a class="term-link" href="#def-rope">RoPE</a> introduces positional information by rotating pairs of numbers within the Query and Key data used by the attention process.
+                        </p>
+                    <p>That might be hard to visualize, but think back to high school math, where a pair of numbers can represent coordinates on a graph. Now draw an arrow
+                        from the center of the graph to that point. That arrow will have a certain length. Now imagine that arrow and the dot rotating around the center point, like a clock hand.
+                        RoPE works on a similar principle. It rotates the arrow, which changes the coordinates, but the length stays the same.
+                    </p>
+                    <p>So how does this determine position? To put it simply, if one clock hand points to 1 and another points to 2, you know they are 1 step apart or a 30 degree difference.
+                        There is a small "problem," though. Once a clock completes a full rotation, the hand returns to its original direction. This means a single clock cannot distinguish
+                        between certain positions. RoPE addresses this by using multiple clocks, each rotating at a different frequency.
+                    </p>
+                    <p></p>
+                    <p></p>
+                </div>
+                <aside class="companion">
+                    <div id="clocks" class="ah-demo">
+                        <h3>Fast clock vs Slow clock</h3>
+                        <p class="ah-muted">Drag the sliders. Watch how the fast clock returns to its starting position while the slow clock continues.</p>
+
+                        <div class="controls">
+                            <label>Word A: <span class="val" id="aVal">2</span>
+                            <input type="range" id="aPos" min="0" max="23" value="2" style="width:200px"></label>
+                            <label>Word B: <span class="val" id="bVal">5</span>
+                            <input type="range" id="bPos" min="0" max="23" value="5" style="width:200px"></label>
+                        </div>
+
+                        <div class="row">
+                            <div class="dial ah-head">
+                                <div class="label">Fast Clock</div>
+                                <div>30° per step</div>
+                                <svg width="200" height="200" viewBox="0 0 200 200">
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#ccc" stroke-width="2"/>
+                                    <line id="fastA" class="hand" x1="100" y1="100" x2="100" y2="28" stroke="#c00"/>
+                                    <line id="fastB" class="hand" x1="100" y1="100" x2="100" y2="28" stroke="#006"/>
+                                </svg>
+                                <div>Angle between hands</div>
+                                <div class="angle" id="fastAngle">90°</div>
+                            </div>
+
+                            <div class="dial ah-head">
+                                <div class="label">Slow Clock</div>
+                                <div>2° per step</div>
+                                <div>
+                                <svg width="200" height="200" viewBox="0 0 200 200">
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#ccc" stroke-width="2"/>
+                                    <line id="slowA" class="hand" x1="100" y1="100" x2="100" y2="28" stroke="#c00"/>
+                                    <line id="slowB" class="hand" x1="100" y1="100" x2="100" y2="28" stroke="#006"/>
+                                </svg>
+                                </div>
+                                <div>Angle between hands</div>
+                                <div class="angle" id="slowAngle">6°</div>
+                            </div>
+                        </div>
+                        <div class="ah-note" id="ah-note" aria-live="polite">Steps apart: <span class="val" id="steps">3</span> &nbsp; (neighbors ≈ 3 apart, far ≈ 15 apart)</div>
+                    </div>
+
+                    <script>
+                        (function () {
+                            const clocks = document.getElementById("clocks");
+                            const $ = (id) => clocks.querySelector("#" + id);
+                            let aPos = $('aPos'), 
+                                bPos = $('bPos');
+
+                            const fastAngle = (steps) => {
+                                const a = (steps * 30) % 360;
+                                return a > 180 ? 360 - a : a;
+                            };
+                            const slowAngle = (steps) => steps * 2;
+                            const setHand = (id, deg) => $(id).setAttribute('transform', 'rotate(' + deg + ' 100 100)');
+                            const update = () => {
+                                const a = +aPos.value, b = +bPos.value;
+                                const steps = Math.abs(b - a);
+                                $('aVal').textContent = a;
+                                $('bVal').textContent = b;
+                                $('steps').textContent = steps;
+                                setHand('fastA', a * 30);
+                                setHand('fastB', b * 30);
+                                setHand('slowA', a * 2);
+                                setHand('slowB', b * 2);
+                                $('fastAngle').textContent = fastAngle(steps) + '°';
+                                $('slowAngle').textContent = slowAngle(steps) + '°';
+                                $('curLabel').textContent = 'you: ' + steps + ' apart';
+                                $('curFast').textContent = fastAngle(steps) + '°';
+                                $('curSlow').textContent = slowAngle(steps) + '°';
+                                $('row3').classList.toggle('hi', steps === 3);
+                                $('row15').classList.toggle('hi', steps === 15);
+                            }
+                            aPos.addEventListener('input', update);
+                            bPos.addEventListener('input', update);
+                            update();
+                        })();
+                    </script>
+                </aside>
+            </section>
+            <section class="article-section" id="ffn">
+                <div class="prose">
+                    <h2>Feed-Forward Network (FFN)</h2>
+                    <p>After attention gathers information from the context, the Feed-Forward Network processes that information using patterns learned during training.</p>
+                    <p>Unlike attention, which looks at relationships between tokens, the FFN processes each token's information individually.</p>
+                    <p>Different models use variations of this process, such as SiLU, SwiGLU, and GeGLU. These are mathematical functions that transform the data in different ways.</p>
+                    <p>Once the FFN finishes, its results are added back to the existing information through our friend, Residual Addition, and the model moves on to the next layer.</p>
+                </div>
+                <aside class="companion">
+                </aside>
+                <div class="deep-dive">
+                    <div class="deep-dive-header">
+                        <span class="deep-dive-icon">&lt;/&gt;</span>
+                        <strong>Inside Brewference</strong>
+                        <span class="deep-dive-label">Optional deep dive</span>
+                    </div>
+                    <p>Brewference supports SwiGLU and GeGLU activations. I'm not going to pretend I fully understand the mathematics behind these functions. 
+                        I understand how they're implemented, but the cleverness is in how the model learns to use them.</p>
+                </div>
+                <aside class="companion">
+                    <div class="panel code-panel">
+                        <div class="filename">FfnActivation.java</div>
+                        <pre class="language-java"><code class="language-java">public static void geGlu(final RunState runState, final Config config) {
+    applyGatedActivation(runState, config, FfnActivation::geluPytorchTanh);
+}
+
+public static void swiGlu(final RunState runState, final Config config) {
+    applyGatedActivation(runState, config, FfnActivation::silu);
+}
+
+private static void applyGatedActivation(final RunState runState, final Config config, final DoubleUnaryOperator activation) {
+    final int hiddenDimensions = config.getHiddenDimensions();
+    for (int i = 0; i < hiddenDimensions; i++) {
+        final float value = runState.hb[i];
+        runState.hb[i] = (float) activation.applyAsDouble(value) * runState.hb2[i];
+    }
+}
+
+private static double geluPytorchTanh(final double value) {
+    final double inner = SQRT_TWO_OVER_PI * (value + GELU_COEFFICIENT * value * value * value);
+    return 0.5 * value * (1.0 + Math.tanh(inner));
+}
+
+private static double silu(final double value) {
+    return value / (1.0 + Math.exp(-value));
+}</code></pre>
+                    </div>
+                </aside>
+            </section>
+            <section class="article-section" id="logits">
+                <div class="prose">
+                    <h2>Logits and Token Sampling</h2>
+                    <p>After the token (if you got this far, the token being analyzed is either part of a prompt or a previously generated token) has passed through every layer, the model is ready
+                        to make a prediction.
+                    </p>
+                    <p>The resulting numerical data is converted into a list of scores called <em>logits</em>. Each logit corresponds to a token in the model's vocabulary, meaning every single token in the vocabulary has a value.
+                        Higher scores generally indicate a more likely continuation of the text.
+                    </p>
+                    <p>The next step is to reduce that set down to a single token. That token will be selected, added to the output, and sent back through the forward pass process to be repeated until generation is complete.
+                    </p>
+                    <p>The simplest way to select a token is to choose the one with the highest score. This is called <em>Argmax</em>. The issue with doing this is that the highest-scoring token can produce both predictable and repetitive results. Not ideal for most cases where an LLM is useful.
+                    </p>
+                    <p>Instead, many inference engines use sampling techniques that convert these scores into probabilities and select a token based on those probabilities. If you have ever modified settings when using a local LLM setup, you definitely noticed <a class="term-link" href="#def-temperature"><i>Temperature</i></a>,
+                        <a class="term-link" href="#def-top-k"><i>Top-K</i></a>, <a class="term-link" href="#def-top-p"><i>Top-P</i></a> and others. These settings influence how a token is ultimately selected.
+                    </p>
+                    <p>You may wonder: What ends the generation? The models are trained to identify when a sentence should end. They mark these endings with a special token, EOS or end of sentence. This token informs the inference engine that generation is complete and returns control to the application or user.
+                    </p>
+                </div>
+                <aside class="companion">
+                    <div class="sampling-demo" id="sampling-demo" aria-label="Interactive token sampling demonstration">
+                        <div class="sampling-intro">
+                            <h2>Token Sampling Playground</h2>
+                            <p class="sampling-muted">Prompt: “The cat sat on the...”</p>
+                        </div>
+
+                        <div class="sampling-control">
+                            <label for="sampling-temperature">Temperature <output id="sampling-temperature-value">1.0</output></label>
+                            <input id="sampling-temperature" type="range" min="0.2" max="2" step="0.1" value="1">
+                            <div class="sampling-hints"><span>More predictable</span><span>More varied</span></div>
+                        </div>
+                        <div class="sampling-control">
+                            <label for="sampling-top-k">Top-K <output id="sampling-top-k-value">5 tokens</output></label>
+                            <input id="sampling-top-k" type="range" min="1" max="5" step="1" value="5">
+                        </div>
+                        <div class="sampling-control">
+                            <label for="sampling-top-p">Top-P <output id="sampling-top-p-value">1.00</output></label>
+                            <input id="sampling-top-p" type="range" min="0.1" max="1" step="0.05" value="1">
+                        </div>
+
+                        <hr class="sampling-divider">
+                        <div id="sampling-bars" aria-live="polite"></div>
+                        <div class="sampling-buttons">
+                            <button id="sampling-sample" type="button">↝ Sample Token</button>
+                            <button id="sampling-reset" type="button">Reset</button>
+                        </div>
+                        <div id="sampling-result" class="sampling-result" hidden aria-live="polite"></div>
+                        <p class="sampling-footer"><strong>Note:</strong> Illustrative purposes only.</p>
+                    </div>
+                    <script>
+                        (() => {
+                        'use strict';
+                        const root = document.getElementById('sampling-demo');
+                        const $ = id => root.querySelector('#' + id);
+                        const tokens = [
+                            { name: 'mat', logit: 4.2 },
+                            { name: 'floor', logit: 3.5 },
+                            { name: 'chair', logit: 2.8 },
+                            { name: 'roof', logit: 1.8 },
+                            { name: 'moon', logit: 0.9 }
+                        ];
+                        const temperature = $('sampling-temperature');
+                        const topK = $('sampling-top-k');
+                        const topP = $('sampling-top-p');
+                        let selected = null;
+                        let distribution = [];
+
+                        function calculate() {
+                            const temp = Number(temperature.value);
+                            const k = Number(topK.value);
+                            const p = Number(topP.value);
+                            const candidates = tokens.slice(0, k); // Sample logits are already in descending order.
+                            const scaled = candidates.map(t => t.logit / temp);
+                            const max = Math.max(...scaled);
+                            const exp = scaled.map(v => Math.exp(v - max));
+                            const total = exp.reduce((a, b) => a + b, 0);
+                            const probabilities = exp.map(v => v / total);
+                            let cumulative = 0;
+                            let cutoff = probabilities.length;
+                            for (let i = 0; i < probabilities.length; i++) {
+                            cumulative += probabilities[i];
+                            if (cumulative >= p) { cutoff = i + 1; break; }
+                            }
+                            const retainedMass = probabilities.slice(0, cutoff).reduce((a, b) => a + b, 0);
+                            return tokens.map((t, i) => ({
+                            ...t,
+                            probability: i < cutoff ? probabilities[i] / retainedMass : 0,
+                            retained: i < cutoff
+                            }));
+                        }
+
+                        function render() {
+                            $('sampling-temperature-value').textContent = Number(temperature.value).toFixed(1);
+                            $('sampling-top-k-value').textContent = `${topK.value} tokens`;
+                            $('sampling-top-p-value').textContent = Number(topP.value).toFixed(2);
+                            distribution = calculate();
+                            const bars = $('sampling-bars');
+                            bars.replaceChildren();
+                            distribution.forEach((token, index) => {
+                            const row = document.createElement('div');
+                            row.className = 'sampling-token' + (selected === index ? ' selected' : '');
+                            const name = document.createElement('span');
+                            name.className = 'sampling-name';
+                            name.textContent = token.name;
+                            const track = document.createElement('div');
+                            track.className = 'sampling-bar-track';
+                            const bar = document.createElement('div');
+                            bar.className = 'sampling-bar';
+                            bar.style.width = `${token.probability * 100}%`;
+                            track.append(bar);
+                            const percent = document.createElement('span');
+                            percent.className = 'sampling-percent';
+                            percent.textContent = `${(token.probability * 100).toFixed(1)}%`;
+                            const check = document.createElement('span');
+                            check.className = 'sampling-check';
+                            check.textContent = selected === index ? '✓' : '';
+                            row.append(name, track, percent, check);
+                            bars.append(row);
+                            });
+                            const result = $('sampling-result');
+                            result.hidden = selected === null;
+                            if (selected !== null) {
+                            result.replaceChildren();
+                            const label = document.createElement('div');
+                            label.className = 'sampling-muted';
+                            label.textContent = 'Selected next token';
+                            const title = document.createElement('strong');
+                            title.textContent = `“${tokens[selected].name}”`;
+                            const sentence = document.createElement('div');
+                            sentence.textContent = `The cat sat on the ${tokens[selected].name}`;
+                            result.append(label, title, sentence);
+                            }
+                        }
+
+                        for (const slider of [temperature, topK, topP]) {
+                            slider.addEventListener('input', () => { selected = null; render(); });
+                        }
+                        $('sampling-sample').addEventListener('click', () => {
+                            let threshold = Math.random();
+                            // Cumulative probability sampling: probabilities sum to approximately 1.
+                            for (let i = 0; i < distribution.length; i++) {
+                            threshold -= distribution[i].probability;
+                            if (threshold <= 0) { selected = i; break; }
+                            }
+                            if (selected === null) selected = distribution.findLastIndex(t => t.retained);
+                            render();
+                        });
+                        $('sampling-reset').addEventListener('click', () => {
+                            temperature.value = '1';
+                            topK.value = '5';
+                            topP.value = '1';
+                            selected = null;
+                            render();
+                        });
+                        render();
+                        })();
+                    </script>
+                </aside>
+                                <div class="deep-dive">
+                    <div class="deep-dive-header">
+                        <span class="deep-dive-icon">&lt;/&gt;</span>
+                        <strong>Logits In-Depth</strong>
+                        <span class="deep-dive-label">Optional deep dive</span>
+                    </div>
+                    <p><i>Argmax</i> is a simple, deterministic operation, meaning that the same prompt on the same
+                        model will produce the same logits,
+                        resulting in the same generated token. This is great for benchmarking and testing because the
+                        output can be verified (with caveats).
+                        However, in practice, this is not the best approach for getting great results.</p>
+                    <p>Alternatives that sample from the logits along with using settings like <a class="term-link" href="#def-temperature"><i>Temperature</i></a>,
+                        <a class="term-link" href="#def-top-k"><i>Top-K</i></a>, and <a class="term-link" href="#def-top-p"><i>Top-P</i></a> introduce random
+                        variation to the mix. This type of method is considered <i>stochastic</i>, meaning it is
+                        governed by a probability distribution.</p>
+                    <p>The code to the right shows some of the methods used. Most are simple in nature, but when
+                        combined, they add that bit of randomness needed.</p>
+                    <p><i>Temperature</i> adjusts the scale of the logits by division. Low values (smaller than 1.0)
+                        increase the distance between logits, making it more likely that higher probability logits
+                        will be selected, whereas higher values smooth things out. Imagine the bell curve rising sharply
+                        like a mountain versus flattening out like a small hill. (Important note, the logits are not
+                        sorted in memory like a bell curve, illustrative purposes only.)</p>
+                    <p><i>Top-K</i>, where K is not an acronym, simply limits the number of logits considered. It
+                        reduces the set to the specified value. If there are 4,096 logits and the Top-K is 60, only the
+                        60 largest logits from the group will be considered.</p>
+                    <p><i>Top-P</i> sets a threshold for total combined probabilities. These probabilities are generated
+                        by a mathematical function called <a class="term-link" href="#def-softmax"><i>softmax</i></a>, using the logits after the Top-K and Temperature
+                        have already been applied. Essentially, if Top-P is set to 0.9, the probabilities are added up
+                        until they meet or slightly exceed 0.9. Note that it is possible for the threshold to never be
+                        reached during this operation, in which case the Top-P has no effect.</p>
+                    <p>None of the above functions truly introduce randomness. Instead, they prepare and tweak the data
+                        for the final sampling. This is performed by a <a class="term-link" href="#def-sampling">weighted random sampler</a> that typically uses a
+                        pseudo-random number generator applied to a sum of the probabilities. The sampler then loops
+                        through those probabilities, adding them together until the sum meets (or exceeds) the random
+                        threshold. (This describes cumulative probability sampling; other methods exist.)</p>
+                </div>
+                <aside class="companion">
+                    <div class="panel code-panel">
+                        <div class="filename">Sampler.java</div>
+                        <pre class="language-java"><code class="language-java">/**
+* Scales the logits in place by dividing each value by the temperature.
+* Skipped when the temperature is {@code 1.0f}, which leaves the distribution unchanged.
+*
+* @param logits raw model logits; modified in place
+* @param vocabSize number of logits to scale
+* @param temperature sampling temperature, already validated as greater than zero
+*/
+private static void applyTemperature(final float[] logits, final int vocabSize, final float temperature) {
+    if (temperature == 1.0f) {
+        return;
+    }
+
+    for (int index = 0; index < vocabSize; index++) {
+        logits[index] /= temperature;
+    }
+}
+
+/**
+* Finds the indices of the {@code topK} highest logits using a bounded min-heap.
+*
+* @param logits raw model logits (already temperature-scaled)
+* @param vocabSize number of logits to consider
+* @param topK maximum number of candidates to retain; capped at {@code vocabSize}
+* @return token indices sorted in descending order of logit value
+*/
+private static int[] findTopKCandidateIndices(final float[] logits, final int vocabSize, final int topK) {
+    final int candidateLimit = Math.min(topK, vocabSize);
+    final PriorityQueue<Integer> lowestCandidateFirst = new PriorityQueue<>(candidateLimit,
+            (a, b) -> Float.compare(logits[a], logits[b]));
+
+    // Eliminate lower-scoring logits, retaining only the top K candidates for sampling
+    for (int tokenId = 0; tokenId < vocabSize; tokenId++) {
+        if (lowestCandidateFirst.size() < candidateLimit) {
+            lowestCandidateFirst.offer(tokenId);
+        } else if (logits[tokenId] > logits[lowestCandidateFirst.peek()]) {
+            lowestCandidateFirst.poll();
+            lowestCandidateFirst.offer(tokenId);
+        }
+    }
+
+    // Build the final list in descending order of logit value
+    final int[] candidateIndices = new int[lowestCandidateFirst.size()];
+    for (int index = candidateIndices.length - 1; index >= 0; index--) {
+        candidateIndices[index] = lowestCandidateFirst.poll();
+    }
+    return candidateIndices;
+}
+
+/**
+* Determines how many of the highest-probability tokens to retain
+* until their combined probability reaches or exceeds the topP threshold.
+*
+* @param probabilities token probabilities sorted from highest to lowest
+* @param topP cumulative probability threshold (0, 1]
+* @return number of tokens to retain
+*/
+private static int findNucleusCutoff(final float[] probabilities, final float topP) {
+    float cumulativeProbability = 0.0f;
+
+    for (int index = 0; index < probabilities.length; index++) {
+        cumulativeProbability += probabilities[index];
+        if (cumulativeProbability >= topP) {
+            return index + 1;
+        }
+    }
+
+    return probabilities.length;
+}</code></pre>
+                </aside>
+            </section>
+            <section class="article-section" id="brewference">
+                <div class="prose">
+                    <h2>About the Author</h2>
+                    <p>My name is Greg Frazier. I'm a software engineer with a few decades of experience building software. I believe that AI is a great tool to support
+                        you in your field, but absolutely not as a replacement.
+                    </p>
+                    <p>This article is based on what I learned while researching and developing Brewference, an LLM inference engine for Java.</p>
+                    <p><em>Full Disclosure on AI Usage:</em> The interactive widgets embedded within this article were created by various AI tools. AI was also used to check grammar and spelling,
+                        as well as build the definitions list below.</p>
+                </div>
+                <aside class="companion">
+                </aside>
+                <div class="prose">
+                    <h2>About Brewference</h2>
+                    <p>Brewference is a multi-model inference engine written entirely in Java, with no external dependencies.</p>
+                    <p>It supports loading <a class="term-link" href="#def-quantization">quantized</a> GGUF models across a variety of small language models (7B parameters or fewer) and runs entirely on the CPU using system RAM.</p>
+                    <p>The information presented in this article is based on my experiences researching and developing this project.</p>
+                    <p>Brewference is open-source and freely available on GitHub: <a href="https://github.com/gregfrazier/brewference">https://github.com/gregfrazier/brewference</a></p>
+                </div>
+                <aside class="companion">
+                </aside>
+            </section>
+            <section class="article-section reference-section" id="definitions">
+                <div class="prose reference-wide">
+                    <h2>Definitions</h2>
+                    <dl class="definition-list">
+                    <dt id="def-token">Token</dt>
+                    <dd>A piece of text recognized by the model, which may be a word, part of a word, punctuation, or whitespace.</dd>
+                    <dt id="def-vocabulary">Vocabulary</dt>
+                    <dd>The set of tokens a model can recognize, with a numerical ID assigned to each token.</dd>
+                    <dt id="def-embedding">Embedding table</dt>
+                    <dd>A lookup table that maps each token ID to a learned vector of numbers.</dd>
+                    <dt id="def-vector">Vector</dt>
+                    <dd>An ordered list of numbers used to represent information.</dd>
+                    <dt id="def-tensor">Tensor</dt>
+                    <dd>A collection of numbers arranged in one or more dimensions. A vector is a one-dimensional tensor.</dd>
+                    <dt id="def-logit">Logit</dt>
+                    <dd>A score assigned to a possible next token before scores are converted into probabilities.</dd>
+                    <dt id="def-argmax">Argmax</dt>
+                    <dd>A selection method that chooses the token with the highest score.</dd>
+                    <dt id="def-layer">Layer</dt>
+                    <dd>One repeated stage of the neural network that transforms the current numerical representation.</dd>
+                    <dt id="def-attention-head">Attention head</dt>
+                    <dd>One of several parallel ways the model calculates which earlier token information to emphasize.</dd>
+                    <dt id="def-kv-cache">Key-Value (KV) cache</dt>
+                    <dd>Stored key and value representations of earlier tokens, reused during generation instead of recomputing them.</dd>
+                    <dt id="def-normalization">Normalization</dt>
+                    <dd>An operation that adjusts the scale of a group of numbers to help keep processing stable.</dd>
+                    <dt id="def-rope">Rotary Position Encoding (RoPE)</dt>
+                    <dd>A method that introduces position information by rotating pairs of values in the query and key representations used by attention.</dd>
+                    <dt id="def-temperature">Temperature</dt>
+                    <dd>A sampling setting that makes the probability distribution sharper or flatter.</dd>
+                    <dt id="def-top-k">Top-K</dt>
+                    <dd>A sampling filter that retains only the K highest-scoring candidate tokens.</dd>
+                    <dt id="def-top-p">Top-P</dt>
+                    <dd>A sampling filter that retains the smallest set of highest-probability tokens reaching a chosen cumulative probability.</dd>
+                    <dt id="def-softmax">Softmax</dt>
+                    <dd>A function that converts a set of scores into probabilities that add up to one.</dd>
+                    <dt id="def-sampling">Sampling</dt>
+                    <dd>Choosing a token from a set of candidates, often according to their probabilities.</dd>
+                    <dt id="def-quantization">Quantization</dt>
+                    <dd>Representing numerical values with fewer bits to reduce memory usage, usually with some loss of precision.</dd>
+                    </dl>
+                </div>
+            </section>
+            <section class="article-section reference-section" id="notes">
+                <div class="prose reference-wide">
+                    <h2>Notes</h2>
+                    <ol class="article-notes">
+                        <li id="note-1"><span class="note-symbol">1</span> Byte Pair Encoding and Unigram are two approaches to building token vocabularies. They differ in how candidate text pieces are chosen and combined. <a href="#note-ref-1" aria-label="Return to note 1">↩</a></li>
+                        <li id="note-2"><span class="note-symbol">2</span> To clarify: Tokenization is not simply about compressing the training corpus. A tokenizer balances vocabulary size, common text patterns, and how efficiently text can be represented as tokens. Compression is an artifact of this process, but not the sole reason for tokenization. <a href="#note-ref-2" aria-label="Return to note 2">↩</a></li>
+                        <li id="note-3"><span class="note-symbol">3</span> I use "words" interchangeably with "tokens" to make it simpler, but logits represent tokens which can be partial words, punctuation, etc. Keep that in mind. <a href="#note-ref-3" aria-label="Return to note 3">↩</a></li>
+                    </ol>
+                </div>
+            </section>
+            <section class="article-section reference-section" id="references">
+                <div class="prose reference-wide">
+                    <h2>References and Further Reading</h2>
+                    <ol class="article-references">
+                        <li><a href="https://huggingface.co/docs/tokenizers/en/components#models" target="_blank" rel="noopener noreferrer">Hugging Face Tokenizers - Models</a>. Overview of BPE, Unigram, and other tokenization approaches.</li>
+                        <li><a href="https://arxiv.org/abs/1508.07909" target="_blank" rel="noopener noreferrer">Sennrich, Haddow, and Birch - Neural Machine Translation of Rare Words with Subword Units</a> (2016). Background on subword tokenization.</li>
+                        <li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener noreferrer">Vaswani et al. - Attention Is All You Need</a> (2017). Original Transformer architecture.</li>
+                        <li><a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener noreferrer">Su et al. - RoFormer: Enhanced Transformer with Rotary Position Embedding</a> (2021). RoPE.</li>
+                        <li><a href="https://arxiv.org/abs/1910.07467" target="_blank" rel="noopener noreferrer">Zhang and Sennrich - Root Mean Square Layer Normalization</a> (2019). RMSNorm.</li>
+                        <li><a href="https://arxiv.org/abs/1904.09751" target="_blank" rel="noopener noreferrer">Holtzman et al. - The Curious Case of Neural Text Degeneration</a> (2020). Nucleus (Top-P) sampling.</li>
+                        <li><a href="https://github.com/gregfrazier/brewference" target="_blank" rel="noopener noreferrer">Brewference source code</a>. Java implementation discussed in the optional deep dives.</li>
+                    </ol>
+                </div>
+            </section>
+        </div>
+        <footer>COPYRIGHT 2026 GREG FRAZIER</footer>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+</body>
+
+</html>
